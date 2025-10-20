@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NashfyPitStop | Kenya & East Africa F1 Community</title>
+    <meta name="description" content="The ultimate F1 community hub for Kenya and East Africa. Live watch parties, latest news, race schedules in EAT, and more." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/tailwind.css" />
+  </head>
+  <body class="bg-gradient-to-br from-gray-50 to-gray-100 text-blue-900">
+    <header class="sticky top-0 z-50 bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="chip bg-white text-orange-600">NP</span>
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">NashfyPitStop</h1>
+        </div>
+        <nav class="hidden md:flex items-center gap-4">
+          <a href="#home" class="nav-link active">Home</a>
+          <a href="#about" class="nav-link">About</a>
+          <a href="#watch-party" class="nav-link">Watch Party</a>
+          <a href="#blogs" class="nav-link">Blogs</a>
+          <button id="joinClubBtn" class="btn-primary bg-white text-orange-600 hover:bg-orange-50">Join Club</button>
+        </nav>
+        <button id="mobileMenuBtn" class="md:hidden text-white">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Mobile Menu -->
+      <div id="mobileMenu" class="md:hidden bg-orange-600 border-t border-orange-500 hidden">
+        <div class="px-4 py-2 space-y-2">
+          <a href="#home" class="block text-white py-2 hover:bg-orange-700 rounded">Home</a>
+          <a href="#about" class="block text-white py-2 hover:bg-orange-700 rounded">About</a>
+          <a href="#watch-party" class="block text-white py-2 hover:bg-orange-700 rounded">Watch Party</a>
+          <a href="#blogs" class="block text-white py-2 hover:bg-orange-700 rounded">Blogs</a>
+          <button id="joinClubBtnMobile" class="w-full bg-white text-orange-600 py-2 rounded hover:bg-orange-50">Join Club</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="home" class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <!-- Hero Section -->
+      <section class="glass-card grid md:grid-cols-2 gap-6 items-center">
+        <div class="space-y-3">
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-orange-600">Welcome to NashfyPitStop!</h2>
+          <p class="text-blue-700">The ultimate F1 community hub for Kenya and East Africa. Join us for live watch parties, latest news, race schedules in EAT, and connect with fellow F1 enthusiasts across the region.</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip bg-orange-100 text-orange-700">Timezone: EAT (UTC+3)</span>
+            <span class="chip bg-blue-100 text-blue-700">Live Watch Parties</span>
+            <span class="chip bg-green-100 text-green-700">Latest F1 News</span>
+          </div>
+        </div>
+        <div class="glass-card p-6">
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="glass-card">
+              <div class="text-2xl font-bold text-orange-600" id="nextRaceCountdown">--:--:--</div>
+              <div class="text-xs text-blue-600">Next Race Countdown</div>
+            </div>
+            <div class="glass-card">
+              <div class="text-2xl font-bold text-blue-600" id="localTime">--:--</div>
+              <div class="text-xs text-blue-600">Local Time (EAT)</div>
+            </div>
+            <div class="glass-card">
+              <div class="text-2xl font-bold text-green-600" id="weatherNairobi">--°C</div>
+              <div class="text-xs text-blue-600">Nairobi Weather</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Latest Blog News Carousel -->
+      <section class="glass-card">
+        <h3 class="text-2xl font-bold text-blue-900 mb-6">Latest F1 News</h3>
+        <div class="relative">
+          <div id="newsCarousel" class="overflow-hidden">
+            <div class="flex transition-transform duration-500 ease-in-out" id="carouselTrack">
+              <!-- News items will be populated by JavaScript -->
+            </div>
+          </div>
+          <button id="prevBtn" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          <button id="nextBtn" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- F1 Results with Reactions -->
+      <section class="glass-card">
+        <h3 class="text-2xl font-bold text-blue-900 mb-6">Latest Race Results & Fan Reactions</h3>
+        <div class="space-y-4">
+          <div class="glass-card p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-bold text-blue-900">Saudi Arabian GP 2025</h4>
+              <span class="text-sm text-blue-600">March 8, 2025</span>
+            </div>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-yellow-600">🥇</div>
+                <div class="text-sm font-semibold text-blue-900">1. Max Verstappen</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-400">🥈</div>
+                <div class="text-sm font-semibold text-blue-900">2. Lando Norris</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-orange-400">🥉</div>
+                <div class="text-sm font-semibold text-blue-900">3. Charles Leclerc</div>
+              </div>
+            </div>
+            <div class="space-y-2" id="raceReactions">
+              <!-- Fan reactions will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Schedule Section -->
+      <section class="grid lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 glass-card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-blue-900">2025 Race Schedule (EAT)</h3>
+            <div class="flex gap-2">
+              <select id="seasonSelect" class="bg-white/80 border border-blue-200 rounded-lg px-3 py-2 text-blue-900">
+                <option value="2025" selected>2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+              </select>
+              <button id="refreshSchedule" class="btn-primary bg-orange-500 text-white hover:bg-orange-600">Refresh</button>
+            </div>
+          </div>
+          <div id="scheduleList" class="grid sm:grid-cols-2 gap-4"></div>
+        </div>
+        <aside class="glass-card space-y-4">
+          <h3 class="text-xl font-bold text-blue-900">Quick Links</h3>
+          <div class="space-y-3">
+            <a href="#watch-party" class="block glass-card p-3 hover:bg-orange-50 transition-colors">
+              <div class="font-semibold text-blue-900">🎉 Watch Party Venues</div>
+              <div class="text-sm text-blue-600">Find venues near you</div>
+            </a>
+            <a href="#blogs" class="block glass-card p-3 hover:bg-orange-50 transition-colors">
+              <div class="font-semibold text-blue-900">📰 Latest News</div>
+              <div class="text-sm text-blue-600">F1 updates & analysis</div>
+            </a>
+            <a href="#about" class="block glass-card p-3 hover:bg-orange-50 transition-colors">
+              <div class="font-semibold text-blue-900">👥 Our Community</div>
+              <div class="text-sm text-blue-600">Learn about us</div>
+            </a>
+          </div>
+
+          <h3 class="text-xl font-bold pt-4 text-blue-900">Quick Quiz</h3>
+          <div id="quizBox" class="space-y-2"></div>
+          <div id="quizResult" class="text-sm text-blue-600"></div>
+        </aside>
+      </section>
+
+      <!-- Community Section -->
+      <section class="glass-card">
+        <h3 class="text-xl font-bold mb-2 text-blue-900">Community Shoutouts</h3>
+        <p class="text-blue-700 mb-4">Tag your crew: Nairobi GP nights at K1, Mombasa watch parties, Kampala grid chats, Kigali coffee meets. Spread the passion!</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="chip bg-orange-100 text-orange-700">#KenyaF1</span>
+          <span class="chip bg-blue-100 text-blue-700">#EAFormulaOne</span>
+          <span class="chip bg-green-100 text-green-700">#SafariSpirit</span>
+          <span class="chip bg-purple-100 text-purple-700">#WatuWaSpeed</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- About Section -->
+    <section id="about" class="max-w-6xl mx-auto px-4 py-8 space-y-8 hidden">
+      <!-- Hero Section -->
+      <div class="glass-card text-center">
+        <div class="text-6xl mb-4">🏁</div>
+        <h2 class="text-4xl font-bold text-blue-900 mb-4">About NashfyPitStop</h2>
+        <p class="text-lg text-blue-700 max-w-4xl mx-auto">
+          Welcome to NashfyPitStop — the ultimate hub for Formula 1 enthusiasts across Kenya and East Africa!
+        </p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="glass-card">
+        <p class="text-blue-700 text-lg leading-relaxed mb-8">
+          We're more than just a website. We're a growing movement of passionate motorsport fans who live for the roar of engines, the thrill of race weekends, and the camaraderie that comes with sharing every lap, pit stop, and podium finish. Whether you're a seasoned F1 aficionado or just discovering the magic of motorsport, NashfyPitStop is your home.
+        </p>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <!-- Mission -->
+          <div class="space-y-6">
+            <div class="text-center">
+              <div class="text-4xl mb-3">🌍</div>
+              <h3 class="text-2xl font-bold text-orange-600 mb-4">Our Mission</h3>
+              <p class="text-blue-700">
+                To unite F1 fans in Kenya and East Africa by building a vibrant, inclusive community that celebrates the sport, connects people, and brings the excitement of Formula 1 closer to home.
+              </p>
+            </div>
+
+            <!-- What We Do -->
+            <div class="text-center">
+              <div class="text-4xl mb-3">🏎️</div>
+              <h3 class="text-2xl font-bold text-orange-600 mb-4">What We Do</h3>
+              <div class="space-y-3 text-left">
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl">🏟️</span>
+                  <span class="text-blue-700">Host and promote F1 watch parties and meetups across Kenya and East Africa</span>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl">📣</span>
+                  <span class="text-blue-700">Share news, race previews, and fan reactions from the paddock to the podium</span>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl">🎙️</span>
+                  <span class="text-blue-700">Feature local voices, fan stories, and motorsport culture from our region</span>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl">🤝</span>
+                  <span class="text-blue-700">Create opportunities for fans to connect, collaborate, and celebrate together</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Why Kenya/East Africa -->
+          <div class="space-y-6">
+            <div class="text-center">
+              <div class="text-4xl mb-3">🇰🇪</div>
+              <h3 class="text-2xl font-bold text-orange-600 mb-4">Why Kenya? Why East Africa?</h3>
+              <p class="text-blue-700">
+                Motorsport passion runs deep here — from the legendary Safari Rally to the growing interest in global racing. NashfyPitStop is here to channel that energy into a thriving F1 fanbase that reflects our unique culture, spirit, and love for speed.
+              </p>
+            </div>
+
+            <!-- Join Movement -->
+            <div class="text-center">
+              <div class="text-4xl mb-3">🚦</div>
+              <h3 class="text-2xl font-bold text-orange-600 mb-4">Join the Movement</h3>
+              <p class="text-blue-700 mb-6">
+                Whether you're cheering for Ferrari, Mercedes, Red Bull, or just love the drama of the grid, NashfyPitStop is your place to belong. Let's build a community that races together, celebrates together, and grows together.
+              </p>
+              <div class="glass-card p-4 bg-gradient-to-r from-orange-100 to-blue-100">
+                <p class="text-blue-900 font-semibold text-lg">
+                  Welcome to the pit stop that never sleeps. Welcome to NashfyPitStop.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Community Values -->
+        <div class="mt-8 pt-8 border-t border-white/30">
+          <h3 class="text-2xl font-bold text-blue-900 text-center mb-6">Our Values</h3>
+          <div class="flex flex-wrap justify-center gap-4">
+            <span class="chip bg-orange-100 text-orange-700 text-base px-6 py-3">Community First</span>
+            <span class="chip bg-blue-100 text-blue-700 text-base px-6 py-3">Local Focus</span>
+            <span class="chip bg-green-100 text-green-700 text-base px-6 py-3">Passion Driven</span>
+            <span class="chip bg-purple-100 text-purple-700 text-base px-6 py-3">Inclusive Spirit</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Watch Party Section -->
+    <section id="watch-party" class="max-w-6xl mx-auto px-4 py-8 space-y-8 hidden">
+      <!-- Hero Section -->
+      <div class="glass-card text-center">
+        <div class="text-6xl mb-4">🎉</div>
+        <h2 class="text-4xl font-bold text-blue-900 mb-4">Watch Party Venues</h2>
+        <p class="text-lg text-blue-700 max-w-4xl mx-auto">
+          Join fellow F1 fans at these amazing venues across East Africa for live race viewing experiences!
+        </p>
+      </div>
+
+      <!-- Venues Grid -->
+      <div class="glass-card">
+        <div id="venuesList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Venues will be populated by JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Blogs Section -->
+    <section id="blogs" class="max-w-6xl mx-auto px-4 py-8 space-y-8 hidden">
+      <!-- Hero Section -->
+      <div class="glass-card text-center">
+        <div class="text-6xl mb-4">📰</div>
+        <h2 class="text-4xl font-bold text-blue-900 mb-4">Latest F1 News & Blogs</h2>
+        <p class="text-lg text-blue-700 max-w-4xl mx-auto">
+          Stay updated with the latest Formula 1 news, race analysis, and community stories from East Africa.
+        </p>
+      </div>
+
+      <!-- Blogs Grid -->
+      <div class="glass-card">
+        <div id="blogsList" class="space-y-6">
+          <!-- Blog posts will be populated by JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Join Club Section -->
+    <section id="join-club" class="max-w-6xl mx-auto px-4 py-8 space-y-8 hidden">
+      <!-- Hero Section -->
+      <div class="glass-card text-center">
+        <div class="text-6xl mb-4">🚦</div>
+        <h2 class="text-4xl font-bold text-blue-900 mb-4">Join the NashfyPitStop Community</h2>
+        <p class="text-lg text-blue-700 max-w-4xl mx-auto">
+          Become part of the fastest-growing F1 community in East Africa. Connect, celebrate, and race together!
+        </p>
+      </div>
+
+      <!-- Join Form and Benefits -->
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Benefits -->
+        <div class="glass-card space-y-6">
+          <h3 class="text-2xl font-bold text-orange-600 text-center">Why Join Us?</h3>
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">🎉</span>
+              <span class="text-blue-700">Exclusive access to watch party venues</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">🔔</span>
+              <span class="text-blue-700">Early notifications for race events</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">🤝</span>
+              <span class="text-blue-700">Connect with local F1 enthusiasts</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">📰</span>
+              <span class="text-blue-700">Get insider news and analysis</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">💬</span>
+              <span class="text-blue-700">Participate in community discussions</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Join Form -->
+        <div class="glass-card p-6">
+          <h3 class="text-2xl font-bold text-blue-900 mb-6 text-center">Join Now</h3>
+          <form id="joinClubForm" class="space-y-4">
+            <input type="text" placeholder="Your Name" class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-3 text-blue-900 placeholder-blue-500 focus:outline-none focus:ring-2 focus:ring-orange-500" required>
+            <input type="email" placeholder="Email Address" class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-3 text-blue-900 placeholder-blue-500 focus:outline-none focus:ring-2 focus:ring-orange-500" required>
+            <select class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-3 text-blue-900 focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="">Select Your City</option>
+              <option value="nairobi">Nairobi</option>
+              <option value="mombasa">Mombasa</option>
+              <option value="kampala">Kampala</option>
+              <option value="dar-es-salaam">Dar es Salaam</option>
+              <option value="kigali">Kigali</option>
+              <option value="other">Other</option>
+            </select>
+            <button type="submit" class="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl">Join Community</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-center text-blue-600 text-sm py-6">
+      © 2024 NashfyPitStop. All rights reserved.
+    </footer>
+
+    <script src="./main.js" type="module"></script>
+  </body>
+  </html>
+
+

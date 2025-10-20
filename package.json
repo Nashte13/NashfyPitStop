@@ -1,0 +1,19 @@
+{
+  "name": "f1-kenya-fans",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A simple F1 fan app for Kenya & East Africa with TailwindCSS",
+  "type": "module",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/styles.css -o ./public/assets/tailwind.css --watch",
+    "build": "tailwindcss -i ./src/styles.css -o ./public/assets/tailwind.css --minify",
+    "preview": "start ./public/index.html"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14"
+  }
+}
+
+
