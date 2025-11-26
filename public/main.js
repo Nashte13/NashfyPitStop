@@ -28,13 +28,47 @@ function formatDateEAT(date) {
 class Navigation {
   constructor() {
     this.currentSection = 'home';
+    this.pageTitles = {
+      'home': 'Home | NashfyPitStop',
+      'about': 'About | NashfyPitStop',
+      'watch-party': 'Watch Party Venues | NashfyPitStop',
+      'blogs': 'F1 News & Community | NashfyPitStop',
+      'join-club': 'Join the Club | NashfyPitStop'
+    };
     this.init();
+    // Check URL hash on load
+    this.handleInitialRoute();
   }
 
   init() {
     this.setupNavigation();
     this.setupMobileMenu();
-    this.showSection('home');
+  }
+  
+  handleInitialRoute() {
+    // Get section from URL hash
+    const hash = window.location.hash.substring(1);
+    const sectionId = (hash && document.getElementById(hash)) ? hash : 'home';
+    this.showSection(sectionId);
+    
+    // Update active nav link
+    const navLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
+    if (navLink) {
+      this.updateActiveLink(navLink);
+    }
+    
+    // Listen for hash changes (back/forward buttons)
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.substring(1);
+      const sectionId = (hash && document.getElementById(hash)) ? hash : 'home';
+      this.showSection(sectionId);
+      
+      // Update active nav link
+      const navLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
+      if (navLink) {
+        this.updateActiveLink(navLink);
+      }
+    });
   }
 
   setupNavigation() {
@@ -45,6 +79,12 @@ class Navigation {
         const section = link.getAttribute('href').substring(1);
         this.showSection(section);
         this.updateActiveLink(link);
+        // Update URL hash
+        if (window.history.pushState) {
+          window.history.pushState(null, null, `#${section}`);
+        } else {
+          window.location.hash = section;
+        }
       });
     });
 
@@ -59,6 +99,12 @@ class Navigation {
         const navLink = document.querySelector(`.nav-link[href="#${section}"]`);
         if (navLink) {
           this.updateActiveLink(navLink);
+        }
+        // Update URL hash
+        if (window.history.pushState) {
+          window.history.pushState(null, null, `#${section}`);
+        } else {
+          window.location.hash = section;
         }
       });
     });
@@ -90,6 +136,12 @@ class Navigation {
         const section = link.getAttribute('href').substring(1);
         this.showSection(section);
         this.toggleMobileMenu();
+        // Update URL hash
+        if (window.history.pushState) {
+          window.history.pushState(null, null, `#${section}`);
+        } else {
+          window.location.hash = section;
+        }
       });
     });
   }
@@ -116,6 +168,17 @@ class Navigation {
         targetSection.classList.add('fade-in');
       }, 50);
       this.currentSection = sectionId;
+      
+      // Update URL hash (without triggering hashchange event)
+      if (window.history.replaceState) {
+        window.history.replaceState(null, null, `#${sectionId}`);
+      } else {
+        window.location.hash = sectionId;
+      }
+      
+      // Update page title
+      const title = this.pageTitles[sectionId] || 'NashfyPitStop | Kenya & East Africa F1 Community';
+      document.title = title;
       
       // Reload venues when watch-party section is shown
       if (sectionId === 'watch-party') {
