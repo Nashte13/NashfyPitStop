@@ -197,14 +197,49 @@ class RealTimeData {
     }
 
     try {
-      const res = await fetch(`https://ergast.com/api/f1/${year}.json`);
+      const url = 'https://f1-race-schedule.p.rapidapi.com/api';
+      const options = {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': '4ac3a74c27msh0f95c51c4289c6bp15bd56jsna05879d977db',
+          'x-rapidapi-host': 'f1-race-schedule.p.rapidapi.com'
+        }
+      };
+
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
-      const races = data.MRData?.RaceTable?.Races ?? [];
+      console.log('F1 Race Schedule API Response:', data);
+      
+      // Parse the response - handle different possible formats
+      let races = [];
+      if (Array.isArray(data)) {
+        races = data;
+      } else if (data.races && Array.isArray(data.races)) {
+        races = data.races;
+      } else if (data.data && Array.isArray(data.data)) {
+        races = data.data;
+      } else if (data.schedule && Array.isArray(data.schedule)) {
+        races = data.schedule;
+      }
+      
+      // Filter by year if needed
+      const currentYear = new Date().getFullYear();
+      if (year !== currentYear) {
+        races = races.filter(race => {
+          const raceYear = this.extractYearFromRace(race);
+          return raceYear === year;
+        });
+      }
+      
+      console.log('Parsed races:', races);
       
       if (races.length > 0) {
         this.renderSchedule(races, year);
         // Only update countdown if viewing current year
-        const currentYear = new Date().getFullYear();
         if (year === currentYear) {
           this.startRaceCountdown(races);
         }
@@ -217,6 +252,24 @@ class RealTimeData {
       console.error('Error loading race schedule:', e);
       this.renderMockSchedule();
     }
+  }
+
+  extractYearFromRace(race) {
+    // Try different possible date fields
+    if (race.date) {
+      return new Date(race.date).getFullYear();
+    }
+    if (race.raceDate) {
+      return new Date(race.raceDate).getFullYear();
+    }
+    if (race.startDate) {
+      return new Date(race.startDate).getFullYear();
+    }
+    if (race.year) {
+      return parseInt(race.year);
+    }
+    // Default to current year if can't determine
+    return new Date().getFullYear();
   }
 
   renderSchedule(races, year) {
@@ -234,25 +287,38 @@ class RealTimeData {
     
     const now = new Date();
     
-    races.forEach((race) => {
-      const raceDate = new Date(race.date + "T" + (race.time || "15:00:00Z"));
+    // Sort races by date
+    const sortedRaces = races.sort((a, b) => {
+      const dateA = this.parseRaceDate(a);
+      const dateB = this.parseRaceDate(b);
+      return dateA - dateB;
+    });
+    
+    sortedRaces.forEach((race, index) => {
+      const raceDate = this.parseRaceDate(race);
       const isPast = raceDate < now;
       const status = isPast ? "Done" : "Upcoming";
       const statusColor = isPast ? "bg-gray-100 text-gray-700" : "bg-green-100 text-green-700";
       const cardOpacity = isPast ? "opacity-75" : "";
       
+      // Extract race information from different possible formats
+      const raceName = race.raceName || race.name || race.grandPrix || race.title || `Race ${index + 1}`;
+      const country = race.country || race.Circuit?.Location?.country || race.location?.country || "Unknown";
+      const locality = race.locality || race.Circuit?.Location?.locality || race.location?.city || race.track?.location || "";
+      const round = race.round || race.roundNumber || index + 1;
+      
       const card = document.createElement("div");
       card.className = `glass-card space-y-2 ${cardOpacity} hover:bg-white/40 transition-all duration-300`;
       card.innerHTML = `
         <div class="flex items-center justify-between mb-2">
-          <div class="text-sm text-blue-600 font-semibold">Round ${race.round}</div>
+          <div class="text-sm text-blue-600 font-semibold">Round ${round}</div>
           <span class="chip ${statusColor} text-xs font-bold">${status}</span>
         </div>
-        <div class="flex items-center gap-2 mb-2">
-          <div class="chip bg-orange-100 text-orange-700 text-xs">${race.Circuit?.Location?.country || "Unknown"}</div>
-          ${race.Circuit?.Location?.locality ? `<div class="text-xs text-blue-600">📍 ${race.Circuit.Location.locality}</div>` : ''}
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+          <div class="chip bg-orange-100 text-orange-700 text-xs">${country}</div>
+          ${locality ? `<div class="text-xs text-blue-600">📍 ${locality}</div>` : ''}
         </div>
-        <div class="text-lg font-bold text-blue-900 mb-2">${race.raceName}</div>
+        <div class="text-lg font-bold text-blue-900 mb-2">${raceName}</div>
         <div class="space-y-1">
           <div class="text-sm font-semibold text-blue-700">${formatDateEAT(raceDate)} EAT</div>
           ${!isPast ? `<div class="text-xs text-blue-600">${this.getTimeUntilRace(raceDate)}</div>` : ''}
@@ -260,6 +326,33 @@ class RealTimeData {
       `;
       list.appendChild(card);
     });
+  }
+
+  parseRaceDate(race) {
+    // Try different possible date/time fields
+    if (race.date && race.time) {
+      return new Date(race.date + "T" + race.time);
+    }
+    if (race.date) {
+      return new Date(race.date);
+    }
+    if (race.raceDate && race.raceTime) {
+      return new Date(race.raceDate + "T" + race.raceTime);
+    }
+    if (race.raceDate) {
+      return new Date(race.raceDate);
+    }
+    if (race.startDate && race.startTime) {
+      return new Date(race.startDate + "T" + race.startTime);
+    }
+    if (race.startDate) {
+      return new Date(race.startDate);
+    }
+    if (race.datetime) {
+      return new Date(race.datetime);
+    }
+    // Default to far future if can't parse
+    return new Date('2099-12-31');
   }
 
   getTimeUntilRace(raceDate) {
@@ -313,27 +406,40 @@ class RealTimeData {
   startRaceCountdown(races) {
     const now = new Date();
     
-    // Find the next upcoming race (not past)
-    const nextRace = races.find(r => {
-      const raceDate = new Date(r.date + "T" + (r.time || "15:00:00Z"));
+    // Sort races by date and find the next upcoming race (not past)
+    const sortedRaces = races.sort((a, b) => {
+      const dateA = this.parseRaceDate(a);
+      const dateB = this.parseRaceDate(b);
+      return dateA - dateB;
+    });
+    
+    const nextRace = sortedRaces.find(r => {
+      const raceDate = this.parseRaceDate(r);
       return raceDate > now;
     });
     
     if (nextRace) {
-      const targetDate = new Date(nextRace.date + "T" + (nextRace.time || "15:00:00Z"));
+      const targetDate = this.parseRaceDate(nextRace);
+      
+      // Extract race name from different possible formats
+      const raceName = nextRace.raceName || nextRace.name || nextRace.grandPrix || nextRace.title || "Next Race";
       
       // Update countdown display with race name
       const raceNameEl = document.getElementById("nextRaceName");
       if (raceNameEl) {
-        raceNameEl.textContent = `${nextRace.raceName} - Countdown`;
+        raceNameEl.textContent = `${raceName} - Countdown`;
       }
       
-      this.updateCountdown(targetDate, nextRace.raceName);
+      this.updateCountdown(targetDate, raceName);
     } else {
       // No upcoming races found
       const el = document.getElementById("nextRaceCountdown");
       if (el) {
         el.textContent = "Season Ended";
+      }
+      const raceNameEl = document.getElementById("nextRaceName");
+      if (raceNameEl) {
+        raceNameEl.textContent = "No upcoming races";
       }
     }
   }
