@@ -137,11 +137,27 @@ class RealTimeData {
   init() {
     this.startLocalTime();
     this.loadWeather();
-    this.loadRaceSchedule();
+    this.setupScheduleControls();
+    this.loadRaceSchedule(2025); // Default to 2025
     this.loadNews();
     this.loadVenues();
     // Blog functionality moved to BlogPage class
     this.loadRaceReactions();
+  }
+
+  setupScheduleControls() {
+    const seasonSelect = document.getElementById('seasonSelect');
+    const refreshBtn = document.getElementById('refreshSchedule');
+    
+    seasonSelect?.addEventListener('change', (e) => {
+      const year = parseInt(e.target.value);
+      this.loadRaceSchedule(year);
+    });
+
+    refreshBtn?.addEventListener('click', () => {
+      const year = parseInt(seasonSelect?.value || 2025);
+      this.loadRaceSchedule(year);
+    });
   }
 
   startLocalTime() {
@@ -171,40 +187,100 @@ class RealTimeData {
     }
   }
 
-  async loadRaceSchedule() {
+  async loadRaceSchedule(year = 2025) {
+    const scheduleList = document.getElementById("scheduleList");
+    const scheduleHeading = document.querySelector("#scheduleList")?.closest('.glass-card')?.querySelector('h3');
+    
+    // Show loading state
+    if (scheduleList) {
+      scheduleList.innerHTML = '<div class="col-span-2 text-center py-8 text-blue-600"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-4"></div><p>Loading schedule...</p></div>';
+    }
+
     try {
-      const res = await fetch("https://ergast.com/api/f1/2025.json");
+      const res = await fetch(`https://ergast.com/api/f1/${year}.json`);
       const data = await res.json();
       const races = data.MRData?.RaceTable?.Races ?? [];
       
       if (races.length > 0) {
-        this.renderSchedule(races);
-        this.startRaceCountdown(races);
+        this.renderSchedule(races, year);
+        // Only update countdown if viewing current year
+        const currentYear = new Date().getFullYear();
+        if (year === currentYear) {
+          this.startRaceCountdown(races);
+        }
+      } else {
+        if (scheduleList) {
+          scheduleList.innerHTML = '<div class="col-span-2 text-center py-8 text-blue-600"><p>No races found for this season.</p></div>';
+        }
       }
     } catch (e) {
+      console.error('Error loading race schedule:', e);
       this.renderMockSchedule();
     }
   }
 
-  renderSchedule(races) {
+  renderSchedule(races, year) {
     const list = document.getElementById("scheduleList");
+    const heading = document.querySelector("#scheduleList")?.closest('.glass-card')?.querySelector('h3');
+    
     if (!list) return;
 
+    // Update heading with selected year
+    if (heading) {
+      heading.textContent = `${year} Race Schedule (EAT)`;
+    }
+
     list.innerHTML = "";
-    races.slice(0, 6).forEach((race) => {
-      const eatDate = new Date(race.date + "T" + (race.time || "15:00:00Z"));
+    
+    const now = new Date();
+    
+    races.forEach((race) => {
+      const raceDate = new Date(race.date + "T" + (race.time || "15:00:00Z"));
+      const isPast = raceDate < now;
+      const status = isPast ? "Done" : "Upcoming";
+      const statusColor = isPast ? "bg-gray-100 text-gray-700" : "bg-green-100 text-green-700";
+      const cardOpacity = isPast ? "opacity-75" : "";
+      
       const card = document.createElement("div");
-      card.className = "glass-card space-y-2";
+      card.className = `glass-card space-y-2 ${cardOpacity} hover:bg-white/40 transition-all duration-300`;
       card.innerHTML = `
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-blue-600">Round ${race.round}</div>
-          <div class="chip bg-orange-100 text-orange-700">${race.Circuit?.Location?.country || ""}</div>
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-sm text-blue-600 font-semibold">Round ${race.round}</div>
+          <span class="chip ${statusColor} text-xs font-bold">${status}</span>
         </div>
-        <div class="text-lg font-semibold text-blue-900">${race.raceName}</div>
-        <div class="text-blue-700">${formatDateEAT(eatDate)} EAT</div>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="chip bg-orange-100 text-orange-700 text-xs">${race.Circuit?.Location?.country || "Unknown"}</div>
+          ${race.Circuit?.Location?.locality ? `<div class="text-xs text-blue-600">📍 ${race.Circuit.Location.locality}</div>` : ''}
+        </div>
+        <div class="text-lg font-bold text-blue-900 mb-2">${race.raceName}</div>
+        <div class="space-y-1">
+          <div class="text-sm font-semibold text-blue-700">${formatDateEAT(raceDate)} EAT</div>
+          ${!isPast ? `<div class="text-xs text-blue-600">${this.getTimeUntilRace(raceDate)}</div>` : ''}
+        </div>
       `;
       list.appendChild(card);
     });
+  }
+
+  getTimeUntilRace(raceDate) {
+    const now = new Date();
+    const diff = raceDate - now;
+    
+    if (diff <= 0) return "Race in progress or completed";
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 7) {
+      const weeks = Math.floor(days / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} away`;
+    } else if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''} away`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} away`;
+    } else {
+      return "Less than an hour away!";
+    }
   }
 
   renderMockSchedule() {
@@ -236,17 +312,40 @@ class RealTimeData {
 
   startRaceCountdown(races) {
     const now = new Date();
-    const nextRace = races.find(r => new Date(r.date + "T" + (r.time || "15:00:00Z")) > now) || races[0];
+    
+    // Find the next upcoming race (not past)
+    const nextRace = races.find(r => {
+      const raceDate = new Date(r.date + "T" + (r.time || "15:00:00Z"));
+      return raceDate > now;
+    });
     
     if (nextRace) {
       const targetDate = new Date(nextRace.date + "T" + (nextRace.time || "15:00:00Z"));
-      this.updateCountdown(targetDate);
+      
+      // Update countdown display with race name
+      const raceNameEl = document.getElementById("nextRaceName");
+      if (raceNameEl) {
+        raceNameEl.textContent = `${nextRace.raceName} - Countdown`;
+      }
+      
+      this.updateCountdown(targetDate, nextRace.raceName);
+    } else {
+      // No upcoming races found
+      const el = document.getElementById("nextRaceCountdown");
+      if (el) {
+        el.textContent = "Season Ended";
+      }
     }
   }
 
-  updateCountdown(targetDate) {
+  updateCountdown(targetDate, raceName = "") {
     const el = document.getElementById("nextRaceCountdown");
     if (!el) return;
+
+    // Clear any existing interval
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
 
     const update = () => {
       const now = new Date();
@@ -254,6 +353,7 @@ class RealTimeData {
       
       if (diff <= 0) {
         el.textContent = "RACE DAY!";
+        el.classList.add("text-red-600", "animate-pulse");
         return;
       }
 
@@ -262,15 +362,20 @@ class RealTimeData {
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
+      // Remove pulse animation if it exists
+      el.classList.remove("text-red-600", "animate-pulse");
+
       if (days > 0) {
         el.textContent = `${days}d ${hours}h ${minutes}m`;
+      } else if (hours > 0) {
+        el.textContent = `${hours}h ${minutes}m ${seconds}s`;
       } else {
-        el.textContent = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        el.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
       }
     };
 
     update();
-    setInterval(update, 1000);
+    this.countdownInterval = setInterval(update, 1000);
   }
 
   async loadNews() {
