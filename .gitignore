@@ -2,5 +2,7 @@ node_modules/
 public/assets/tailwind.css
 .DS_Store
 npm-debug.log*
+CODEBASE_ANALYSIS.md
+
 
 

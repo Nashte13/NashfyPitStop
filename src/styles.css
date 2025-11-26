@@ -31,6 +31,15 @@
   .fade-in {
     animation: fadeIn 0.6s ease-in-out;
   }
+  .blog-tab {
+    @apply relative transition-all duration-300;
+  }
+  .blog-tab.active {
+    @apply text-blue-900;
+  }
+  .blog-tab-content {
+    @apply min-h-[400px];
+  }
 }
 
 @keyframes fadeIn {

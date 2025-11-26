@@ -48,6 +48,21 @@ class Navigation {
       });
     });
 
+    // Handle quick links (they use anchor tags but need navigation)
+    const quickLinks = document.querySelectorAll('aside a[href^="#"]');
+    quickLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = link.getAttribute('href').substring(1);
+        this.showSection(section);
+        // Update nav link if it exists
+        const navLink = document.querySelector(`.nav-link[href="#${section}"]`);
+        if (navLink) {
+          this.updateActiveLink(navLink);
+        }
+      });
+    });
+
     // Join Club buttons
     document.getElementById('joinClubBtn')?.addEventListener('click', () => {
       this.showSection('join-club');
@@ -67,10 +82,13 @@ class Navigation {
       this.toggleMobileMenu();
     });
 
-    // Close mobile menu when clicking on links
+    // Close mobile menu when clicking on links and navigate
     const mobileLinks = document.querySelectorAll('#mobileMenu a');
     mobileLinks.forEach(link => {
-      link.addEventListener('click', () => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = link.getAttribute('href').substring(1);
+        this.showSection(section);
         this.toggleMobileMenu();
       });
     });
@@ -122,7 +140,7 @@ class RealTimeData {
     this.loadRaceSchedule();
     this.loadNews();
     this.loadVenues();
-    this.loadBlogs();
+    // Blog functionality moved to BlogPage class
     this.loadRaceReactions();
   }
 
@@ -255,38 +273,122 @@ class RealTimeData {
     setInterval(update, 1000);
   }
 
-  loadNews() {
-    const newsData = [
+  async loadNews() {
+    // Try to fetch from F1 News API, fallback to mock data
+    const url = 'https://f1-latest-news.p.rapidapi.com/news';
+    const options = {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-key': '4ac3a74c27msh0f95c51c4289c6bp15bd56jsna05879d977db',
+        'x-rapidapi-host': 'f1-latest-news.p.rapidapi.com'
+      }
+    };
+
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.text();
+      const apiNews = JSON.parse(result);
+      
+      // Debug: Log what we received from API
+      console.log('✅ F1 News API Response (LIVE DATA):', apiNews);
+      console.log('📊 Number of news items from API:', Array.isArray(apiNews) ? apiNews.length : 'Not an array');
+      console.log('🕐 Fetched at:', new Date().toLocaleString());
+      
+      // Convert API format to carousel format (take first 4)
+      if (Array.isArray(apiNews) && apiNews.length > 0) {
+        const newsData = apiNews.slice(0, 4).map((news, index) => {
+          // Map source to category
+          const categoryMap = {
+            'autosport': 'Race News',
+            'skyf1': 'Sky Sports F1',
+            'f1': 'Official F1',
+            'bbc': 'BBC Sport',
+            'espn': 'ESPN F1'
+          };
+          
+          return {
+            title: news.title || 'F1 News',
+            summary: news.title || 'Latest Formula 1 updates',
+            image: this.getNewsEmoji(news.source),
+            category: categoryMap[news.source] || news.source || 'F1 News',
+            url: news.url || '#',
+            source: news.source || 'Unknown',
+            fetchedAt: new Date().toISOString() // Track when fetched
+          };
+        });
+        
+        console.log('✅ Rendering', newsData.length, 'LIVE news items in carousel');
+        
+        // Update timestamp indicator
+        const updateTimeEl = document.getElementById('newsUpdateTime');
+        if (updateTimeEl) {
+          updateTimeEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        this.renderNewsCarousel(newsData, true); // Pass true to indicate live data
+        return;
+      } else {
+        console.warn('API returned empty array or invalid data, using fallback');
+      }
+    } catch (error) {
+      console.error('Error loading F1 news for carousel:', error);
+      console.log('Falling back to mock data');
+    }
+
+    // Fallback to mock data if API fails
+    console.warn('⚠️ API failed, using fallback mock data');
+    const newsData = this.getMockNewsData();
+    this.renderNewsCarousel(newsData, false); // false = not live data
+  }
+
+  getMockNewsData() {
+    return [
       {
         title: "Verstappen Dominates Saudi Arabian GP",
         summary: "Red Bull's Max Verstappen secures another commanding victory in Jeddah",
         image: "🏎️",
-        category: "Race Results"
+        category: "Race Results",
+        url: "#blogs"
       },
       {
         title: "New Regulations for 2025 Season",
         summary: "FIA announces updated technical regulations focusing on sustainability",
         image: "📋",
-        category: "Regulations"
+        category: "Regulations",
+        url: "#blogs"
       },
       {
         title: "Hamilton's Move to Ferrari Confirmed",
         summary: "Seven-time world champion makes historic switch to Scuderia Ferrari",
         image: "🔴",
-        category: "Driver News"
+        category: "Driver News",
+        url: "#blogs"
       },
       {
         title: "Nairobi Watch Party Venues Announced",
         summary: "Check out the best spots to watch F1 races in Kenya's capital",
         image: "🏁",
-        category: "Community"
+        category: "Community",
+        url: "#blogs"
       }
     ];
-
-    this.renderNewsCarousel(newsData);
   }
 
-  renderNewsCarousel(newsData) {
+  getNewsEmoji(source) {
+    const emojiMap = {
+      'autosport': '🏎️',
+      'skyf1': '📺',
+      'f1': '🏁',
+      'bbc': '📰',
+      'espn': '⚡'
+    };
+    return emojiMap[source] || '📰';
+  }
+
+  renderNewsCarousel(newsData, isLiveData = false) {
     const track = document.getElementById("carouselTrack");
     if (!track) return;
 
@@ -294,14 +396,21 @@ class RealTimeData {
     newsData.forEach((news, index) => {
       const slide = document.createElement("div");
       slide.className = "min-w-full px-4";
+      const newsUrl = news.url || "#blogs";
+      const isExternal = newsUrl.startsWith('http');
+      const liveIndicator = isLiveData ? '<span class="inline-flex items-center gap-1 text-xs text-green-600 font-semibold"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>LIVE</span>' : '';
       slide.innerHTML = `
-        <div class="glass-card p-6">
-          <div class="flex items-center gap-4">
-            <div class="text-4xl">${news.image}</div>
-            <div>
-              <div class="chip bg-orange-100 text-orange-700 mb-2">${news.category}</div>
-              <h4 class="font-bold text-blue-900 mb-2">${news.title}</h4>
-              <p class="text-blue-700">${news.summary}</p>
+        <div class="glass-card p-6 hover:bg-white/40 transition-all duration-300 cursor-pointer" ${isExternal ? `onclick="window.open('${newsUrl}', '_blank')"` : `onclick="document.querySelector('[href=\\"#blogs\\"]')?.click()"`}>
+          <div class="flex items-center gap-4 flex-col sm:flex-row">
+            <div class="text-4xl sm:text-5xl flex-shrink-0">${news.image}</div>
+            <div class="flex-1 text-center sm:text-left">
+              <div class="flex items-center gap-2 mb-2 flex-wrap justify-center sm:justify-start">
+                <span class="chip bg-orange-100 text-orange-700 inline-block">${news.category}</span>
+                ${liveIndicator}
+              </div>
+              <h4 class="font-bold text-blue-900 mb-2 text-lg sm:text-xl">${news.title}</h4>
+              <p class="text-blue-700 text-sm sm:text-base">${news.summary}</p>
+              ${isExternal ? '<p class="text-xs text-blue-600 mt-2">Click to read full article →</p>' : '<p class="text-xs text-blue-600 mt-2">Click to view all news →</p>'}
             </div>
           </div>
         </div>
@@ -316,27 +425,36 @@ class RealTimeData {
     const track = document.getElementById("carouselTrack");
     const prevBtn = document.getElementById("prevBtn");
     const nextBtn = document.getElementById("nextBtn");
+    if (!track) return;
+    
+    const slides = track.children;
+    const totalSlides = slides.length;
     let currentIndex = 0;
 
     const updateCarousel = () => {
       track.style.transform = `translateX(-${currentIndex * 100}%)`;
     };
 
+    // Initialize
+    updateCarousel();
+
     prevBtn?.addEventListener("click", () => {
-      currentIndex = Math.max(0, currentIndex - 1);
+      currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
       updateCarousel();
     });
 
     nextBtn?.addEventListener("click", () => {
-      currentIndex = Math.min(3, currentIndex + 1);
+      currentIndex = (currentIndex + 1) % totalSlides;
       updateCarousel();
     });
 
-    // Auto-advance carousel
-    setInterval(() => {
-      currentIndex = (currentIndex + 1) % 4;
-      updateCarousel();
-    }, 5000);
+    // Auto-advance carousel (only if we have slides)
+    if (totalSlides > 0) {
+      setInterval(() => {
+        currentIndex = (currentIndex + 1) % totalSlides;
+        updateCarousel();
+      }, 5000);
+    }
   }
 
   loadVenues() {
@@ -399,53 +517,7 @@ class RealTimeData {
     });
   }
 
-  loadBlogs() {
-    const blogsData = [
-      {
-        title: "The Future of F1 in Africa",
-        excerpt: "Exploring the potential for Formula 1 races on the African continent and what it means for local fans.",
-        author: "Nashfy Team",
-        date: "March 10, 2025",
-        readTime: "5 min read"
-      },
-      {
-        title: "East African F1 Fan Culture",
-        excerpt: "How F1 fandom has grown across Kenya, Uganda, Tanzania, and Rwanda over the past decade.",
-        author: "Community Writer",
-        date: "March 8, 2025",
-        readTime: "7 min read"
-      },
-      {
-        title: "Race Weekend Survival Guide",
-        excerpt: "Everything you need to know about organizing the perfect F1 watch party in East Africa.",
-        author: "Event Coordinator",
-        date: "March 5, 2025",
-        readTime: "4 min read"
-      }
-    ];
-
-    this.renderBlogs(blogsData);
-  }
-
-  renderBlogs(blogsData) {
-    const blogsList = document.getElementById("blogsList");
-    if (!blogsList) return;
-
-    blogsList.innerHTML = "";
-    blogsData.forEach(blog => {
-      const card = document.createElement("div");
-      card.className = "glass-card";
-      card.innerHTML = `
-        <h4 class="font-bold text-blue-900 mb-2">${blog.title}</h4>
-        <p class="text-blue-700 mb-3">${blog.excerpt}</p>
-        <div class="flex items-center justify-between text-sm text-blue-600">
-          <span>By ${blog.author}</span>
-          <span>${blog.date} • ${blog.readTime}</span>
-        </div>
-      `;
-      blogsList.appendChild(card);
-    });
-  }
+  // Blog functionality moved to BlogPage class
 
   loadRaceReactions() {
     const reactionsData = [
@@ -504,7 +576,7 @@ class QuizSystem {
       questionEl.className = "space-y-2 mb-4";
       questionEl.innerHTML = `<div class="font-semibold text-blue-900">Q${index + 1}. ${question.q}</div>`;
       
-      question.answers.forEach((answer, answerIndex) => {
+      question.a.forEach((answer, answerIndex) => {
         const btn = document.createElement("button");
         btn.className = "btn-secondary text-sm w-full text-left";
         btn.textContent = answer;
@@ -532,6 +604,286 @@ class QuizSystem {
     if (result) {
       result.textContent = `Score: ${this.score}/${this.questions.length}`;
     }
+  }
+}
+
+// Blog Page Handler
+class BlogPage {
+  constructor() {
+    this.currentTab = 'f1News';
+    this.f1NewsData = [];
+    this.init();
+  }
+
+  init() {
+    this.setupTabs();
+    this.loadF1News();
+    this.loadNashfyNews();
+  }
+
+  setupTabs() {
+    const f1NewsTab = document.getElementById('f1NewsTab');
+    const nashfyNewsTab = document.getElementById('nashfyNewsTab');
+    const f1NewsContent = document.getElementById('f1NewsContent');
+    const nashfyNewsContent = document.getElementById('nashfyNewsContent');
+
+    f1NewsTab?.addEventListener('click', () => {
+      this.switchTab('f1News');
+    });
+
+    nashfyNewsTab?.addEventListener('click', () => {
+      this.switchTab('nashfyNews');
+    });
+  }
+
+  switchTab(tabName) {
+    const f1NewsTab = document.getElementById('f1NewsTab');
+    const nashfyNewsTab = document.getElementById('nashfyNewsTab');
+    const f1NewsContent = document.getElementById('f1NewsContent');
+    const nashfyNewsContent = document.getElementById('nashfyNewsContent');
+
+    // Update tab buttons
+    if (tabName === 'f1News') {
+      f1NewsTab?.classList.add('active', 'border-b-2', 'border-orange-500', 'text-blue-900');
+      f1NewsTab?.classList.remove('text-blue-600');
+      nashfyNewsTab?.classList.remove('active', 'border-b-2', 'border-orange-500', 'text-blue-900');
+      nashfyNewsTab?.classList.add('text-blue-600');
+      
+      f1NewsContent?.classList.remove('hidden');
+      nashfyNewsContent?.classList.add('hidden');
+    } else {
+      nashfyNewsTab?.classList.add('active', 'border-b-2', 'border-orange-500', 'text-blue-900');
+      nashfyNewsTab?.classList.remove('text-blue-600');
+      f1NewsTab?.classList.remove('active', 'border-b-2', 'border-orange-500', 'text-blue-900');
+      f1NewsTab?.classList.add('text-blue-600');
+      
+      nashfyNewsContent?.classList.remove('hidden');
+      f1NewsContent?.classList.add('hidden');
+    }
+
+    this.currentTab = tabName;
+  }
+
+  async loadF1News() {
+    const loadingEl = document.getElementById('f1NewsLoading');
+    const errorEl = document.getElementById('f1NewsError');
+    const newsListEl = document.getElementById('f1NewsList');
+    const retryBtn = document.getElementById('retryF1News');
+
+    // Show loading, hide error and list
+    loadingEl?.classList.remove('hidden');
+    errorEl?.classList.add('hidden');
+    newsListEl?.classList.add('hidden');
+
+    const url = 'https://f1-latest-news.p.rapidapi.com/news';
+    const options = {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-key': '4ac3a74c27msh0f95c51c4289c6bp15bd56jsna05879d977db',
+        'x-rapidapi-host': 'f1-latest-news.p.rapidapi.com'
+      }
+    };
+
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.text();
+      const newsData = JSON.parse(result);
+
+      this.f1NewsData = Array.isArray(newsData) ? newsData : [];
+      this.renderF1News(this.f1NewsData);
+
+      // Hide loading, show list
+      loadingEl?.classList.add('hidden');
+      newsListEl?.classList.remove('hidden');
+    } catch (error) {
+      console.error('Error loading F1 news:', error);
+      
+      // Hide loading, show error
+      loadingEl?.classList.add('hidden');
+      errorEl?.classList.remove('hidden');
+      
+      // Setup retry button
+      retryBtn?.addEventListener('click', () => {
+        this.loadF1News();
+      }, { once: true });
+    }
+  }
+
+  renderF1News(newsData) {
+    const newsListEl = document.getElementById('f1NewsList');
+    if (!newsListEl) return;
+
+    newsListEl.innerHTML = '';
+
+    if (newsData.length === 0) {
+      newsListEl.innerHTML = `
+        <div class="text-center py-8 text-blue-600">
+          <p>No news available at the moment.</p>
+        </div>
+      `;
+      return;
+    }
+
+    newsData.slice(0, 20).forEach((news, index) => {
+      const card = document.createElement('div');
+      card.className = 'glass-card hover:bg-white/40 transition-all duration-300';
+      card.innerHTML = `
+        <div class="flex items-start gap-3 sm:gap-4 flex-col sm:flex-row">
+          <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-base sm:text-lg">
+            ${index + 1}
+          </div>
+          <div class="flex-1 w-full">
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="chip bg-orange-100 text-orange-700 text-xs">${news.source || 'F1 News'}</span>
+            </div>
+            <h4 class="font-bold text-blue-900 mb-2 text-base sm:text-lg hover:text-orange-600 transition-colors">
+              <a href="${news.url}" target="_blank" rel="noopener noreferrer" class="hover:underline break-words">
+                ${news.title}
+              </a>
+            </h4>
+            <a href="${news.url}" target="_blank" rel="noopener noreferrer" 
+               class="text-xs sm:text-sm text-blue-600 hover:text-orange-600 transition-colors inline-flex items-center gap-1">
+              Read more →
+            </a>
+          </div>
+        </div>
+      `;
+      newsListEl.appendChild(card);
+    });
+  }
+
+  loadNashfyNews() {
+    const nashfyNewsData = [
+      {
+        type: 'fan-reaction',
+        title: 'Saudi Arabian GP - Fan Reactions',
+        content: 'The energy at K1 Klubhouse was electric! Verstappen fans were celebrating while Lando supporters were thrilled with his podium finish. The crowd went wild during that final lap battle!',
+        author: 'Community Reporter',
+        date: 'March 8, 2025',
+        location: 'Nairobi, Kenya',
+        reactions: ['🔥', '🏎️', '💪']
+      },
+      {
+        type: 'gossip',
+        title: 'Rumors: Hamilton-Ferrari Chemistry',
+        content: 'Word around the paddock is that Lewis is already making waves at Ferrari. Some insiders say the team dynamic is shifting, and we might see a different strategy approach this season.',
+        author: 'F1 Insider',
+        date: 'March 7, 2025',
+        location: 'East Africa F1 Community',
+        reactions: ['🤫', '🔴', '💭']
+      },
+      {
+        type: 'watch-party',
+        title: 'Mombasa Watch Party Recap',
+        content: 'Tamarind Mombasa hosted an amazing watch party! Over 40 fans gathered, enjoying fresh seafood while watching the race. The ocean view made it even more special. Already planning the next one!',
+        author: 'Event Coordinator',
+        date: 'March 8, 2025',
+        location: 'Mombasa, Kenya',
+        reactions: ['🌊', '🍽️', '🎉']
+      },
+      {
+        type: 'fan-opinion',
+        title: 'Why East Africa Needs More F1 Coverage',
+        content: 'As a long-time F1 fan in Kenya, I believe we need better local coverage. The passion is here, but we need more accessible content in our timezone and language. What do you think?',
+        author: 'Kipchoge M.',
+        date: 'March 6, 2025',
+        location: 'Nairobi, Kenya',
+        reactions: ['💬', '📺', '🌍']
+      },
+      {
+        type: 'gossip',
+        title: 'Red Bull Dominance - Is It Sustainable?',
+        content: 'Everyone is talking about Red Bull\'s continued dominance. Some fans think the regulations need adjustment, while others believe it\'s just superior engineering. The debate is heating up in our community!',
+        author: 'F1 Analyst',
+        date: 'March 5, 2025',
+        location: 'East Africa F1 Community',
+        reactions: ['⚡', '🏆', '🤔']
+      },
+      {
+        type: 'watch-party',
+        title: 'Kampala Rooftop Experience',
+        content: 'Sky Lounge Kampala delivered an incredible experience! The rooftop setting with city views was perfect. Great turnout, amazing atmosphere, and the race was absolutely thrilling. Can\'t wait for the next GP!',
+        author: 'Event Organizer',
+        date: 'March 8, 2025',
+        location: 'Kampala, Uganda',
+        reactions: ['🏙️', '✨', '🎊']
+      },
+      {
+        type: 'fan-reaction',
+        title: 'Charles Leclerc\'s Podium - Fan Celebration',
+        content: 'Ferrari fans in Dar es Salaam were ecstatic! Charles finally got that podium finish. The watch party erupted when he crossed the line. This is what F1 community is all about!',
+        author: 'Community Member',
+        date: 'March 8, 2025',
+        location: 'Dar es Salaam, Tanzania',
+        reactions: ['🔴', '🏁', '🎉']
+      },
+      {
+        type: 'fan-opinion',
+        title: 'The Future of F1 in Africa',
+        content: 'With growing interest across East Africa, I believe we\'re ready for an African Grand Prix. The passion, the community, and the infrastructure are developing. It\'s only a matter of time!',
+        author: 'F1 Enthusiast',
+        date: 'March 4, 2025',
+        location: 'Kigali, Rwanda',
+        reactions: ['🌍', '🏎️', '🚀']
+      }
+    ];
+
+    this.renderNashfyNews(nashfyNewsData);
+  }
+
+  renderNashfyNews(newsData) {
+    const newsListEl = document.getElementById('nashfyNewsList');
+    if (!newsListEl) return;
+
+    newsListEl.innerHTML = '';
+
+    const typeIcons = {
+      'fan-reaction': '💬',
+      'gossip': '🤫',
+      'watch-party': '🎉',
+      'fan-opinion': '💭'
+    };
+
+    const typeColors = {
+      'fan-reaction': 'bg-blue-100 text-blue-700',
+      'gossip': 'bg-purple-100 text-purple-700',
+      'watch-party': 'bg-orange-100 text-orange-700',
+      'fan-opinion': 'bg-green-100 text-green-700'
+    };
+
+    newsData.forEach((news) => {
+      const card = document.createElement('div');
+      card.className = 'glass-card hover:bg-white/40 transition-all duration-300';
+      card.innerHTML = `
+        <div class="flex items-start gap-3 sm:gap-4 flex-col sm:flex-row">
+          <div class="flex-shrink-0 text-3xl sm:text-4xl">${typeIcons[news.type] || '📰'}</div>
+          <div class="flex-1 w-full">
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="chip ${typeColors[news.type] || 'bg-gray-100 text-gray-700'} text-xs">
+                ${news.type.replace('-', ' ').toUpperCase()}
+              </span>
+              <span class="text-xs text-blue-600">📍 ${news.location}</span>
+            </div>
+            <h4 class="font-bold text-blue-900 mb-2 text-base sm:text-lg">${news.title}</h4>
+            <p class="text-blue-700 mb-3 text-sm sm:text-base">${news.content}</p>
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-blue-600 flex-wrap">
+                <span>By ${news.author}</span>
+                <span>•</span>
+                <span>${news.date}</span>
+              </div>
+              <div class="flex items-center gap-1 sm:gap-2">
+                ${news.reactions.map(reaction => `<span class="text-base sm:text-lg">${reaction}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      newsListEl.appendChild(card);
+    });
   }
 }
 
@@ -567,4 +919,5 @@ document.addEventListener("DOMContentLoaded", () => {
   new RealTimeData();
   new QuizSystem();
   new JoinClubForm();
+  new BlogPage();
 });
