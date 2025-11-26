@@ -196,6 +196,10 @@ class RealTimeData {
       scheduleList.innerHTML = '<div class="col-span-2 text-center py-8 text-blue-600"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-4"></div><p>Loading schedule...</p></div>';
     }
 
+    // Try API first, fallback to manual data
+    let races = [];
+    let useManualData = false;
+
     try {
       const url = 'https://f1-race-schedule.p.rapidapi.com/api';
       const options = {
@@ -212,10 +216,9 @@ class RealTimeData {
       }
       
       const data = await res.json();
-      console.log('F1 Race Schedule API Response:', data);
+      console.log('🔵 F1 Race Schedule API Response (RAW):', data);
       
       // Parse the response - handle different possible formats
-      let races = [];
       if (Array.isArray(data)) {
         races = data;
       } else if (data.races && Array.isArray(data.races)) {
@@ -224,33 +227,78 @@ class RealTimeData {
         races = data.data;
       } else if (data.schedule && Array.isArray(data.schedule)) {
         races = data.schedule;
+      } else {
+        console.warn('⚠️ API response format not recognized, using manual data');
+        useManualData = true;
       }
       
-      // Filter by year if needed
-      const currentYear = new Date().getFullYear();
-      if (year !== currentYear) {
-        races = races.filter(race => {
-          const raceYear = this.extractYearFromRace(race);
-          return raceYear === year;
-        });
-      }
-      
-      console.log('Parsed races:', races);
-      
+      // Validate API data quality
       if (races.length > 0) {
-        this.renderSchedule(races, year);
-        // Only update countdown if viewing current year
-        if (year === currentYear) {
-          this.startRaceCountdown(races);
+        const hasValidData = races.some(race => {
+          const raceName = race.raceName || race.name || race.grandPrix || race.title;
+          return raceName && raceName !== 'Unknown' && raceName !== 'unknown';
+        });
+        
+        if (!hasValidData) {
+          console.warn('⚠️ API data appears invalid (missing race names), using manual data');
+          useManualData = true;
         }
       } else {
-        if (scheduleList) {
-          scheduleList.innerHTML = '<div class="col-span-2 text-center py-8 text-blue-600"><p>No races found for this season.</p></div>';
-        }
+        useManualData = true;
       }
+      
     } catch (e) {
-      console.error('Error loading race schedule:', e);
-      this.renderMockSchedule();
+      console.error('❌ Error loading race schedule from API:', e);
+      console.log('📝 Falling back to manual data file');
+      useManualData = true;
+    }
+
+    // Load manual data if API failed or data is invalid
+    if (useManualData) {
+      try {
+        const manualRes = await fetch('./data/race-schedule.json');
+        if (manualRes.ok) {
+          const manualData = await manualRes.json();
+          races = manualData.races || [];
+          console.log('✅ Loaded manual race schedule data:', races.length, 'races');
+        } else {
+          throw new Error('Manual data file not found');
+        }
+      } catch (e) {
+        console.error('❌ Error loading manual data:', e);
+        this.renderMockSchedule();
+        return;
+      }
+    }
+    
+    // Filter by year
+    const currentYear = new Date().getFullYear();
+    if (year !== currentYear) {
+      races = races.filter(race => {
+        const raceYear = this.extractYearFromRace(race);
+        return raceYear === year;
+      });
+    } else {
+      // For current year, only show races from this year
+      races = races.filter(race => {
+        const raceYear = this.extractYearFromRace(race);
+        return raceYear === currentYear;
+      });
+    }
+    
+    console.log('📊 Final parsed races for', year, ':', races.length, 'races');
+    console.log('📋 Races:', races);
+    
+    if (races.length > 0) {
+      this.renderSchedule(races, year);
+      // Only update countdown if viewing current year
+      if (year === currentYear) {
+        this.startRaceCountdown(races);
+      }
+    } else {
+      if (scheduleList) {
+        scheduleList.innerHTML = '<div class="col-span-2 text-center py-8 text-blue-600"><p>No races found for this season.</p></div>';
+      }
     }
   }
 
@@ -302,10 +350,10 @@ class RealTimeData {
       const cardOpacity = isPast ? "opacity-75" : "";
       
       // Extract race information from different possible formats
-      const raceName = race.raceName || race.name || race.grandPrix || race.title || `Race ${index + 1}`;
-      const country = race.country || race.Circuit?.Location?.country || race.location?.country || "Unknown";
-      const locality = race.locality || race.Circuit?.Location?.locality || race.location?.city || race.track?.location || "";
-      const round = race.round || race.roundNumber || index + 1;
+      const raceName = race.raceName || race.name || race.grandPrix || race.title || race.circuit || `Race ${index + 1}`;
+      const country = race.country || race.Circuit?.Location?.country || race.location?.country || race.location || "Unknown";
+      const locality = race.locality || race.Circuit?.Location?.locality || race.location?.city || race.track?.location || race.circuit || "";
+      const round = race.round || race.roundNumber || (index + 1);
       
       const card = document.createElement("div");
       card.className = `glass-card space-y-2 ${cardOpacity} hover:bg-white/40 transition-all duration-300`;

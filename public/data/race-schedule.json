@@ -1,0 +1,212 @@
+{
+  "races": [
+    {
+      "round": 1,
+      "raceName": "Bahrain Grand Prix",
+      "country": "Bahrain",
+      "locality": "Sakhir",
+      "date": "2025-03-02",
+      "time": "15:00:00Z",
+      "circuit": "Bahrain International Circuit"
+    },
+    {
+      "round": 2,
+      "raceName": "Saudi Arabian Grand Prix",
+      "country": "Saudi Arabia",
+      "locality": "Jeddah",
+      "date": "2025-03-09",
+      "time": "17:00:00Z",
+      "circuit": "Jeddah Corniche Circuit"
+    },
+    {
+      "round": 3,
+      "raceName": "Australian Grand Prix",
+      "country": "Australia",
+      "locality": "Melbourne",
+      "date": "2025-03-23",
+      "time": "05:00:00Z",
+      "circuit": "Albert Park Circuit"
+    },
+    {
+      "round": 4,
+      "raceName": "Chinese Grand Prix",
+      "country": "China",
+      "locality": "Shanghai",
+      "date": "2025-04-13",
+      "time": "07:00:00Z",
+      "circuit": "Shanghai International Circuit"
+    },
+    {
+      "round": 5,
+      "raceName": "Japanese Grand Prix",
+      "country": "Japan",
+      "locality": "Suzuka",
+      "date": "2025-04-27",
+      "time": "06:00:00Z",
+      "circuit": "Suzuka International Racing Course"
+    },
+    {
+      "round": 6,
+      "raceName": "Miami Grand Prix",
+      "country": "USA",
+      "locality": "Miami",
+      "date": "2025-05-04",
+      "time": "20:00:00Z",
+      "circuit": "Miami International Autodrome"
+    },
+    {
+      "round": 7,
+      "raceName": "Emilia Romagna Grand Prix",
+      "country": "Italy",
+      "locality": "Imola",
+      "date": "2025-05-18",
+      "time": "14:00:00Z",
+      "circuit": "Autodromo Enzo e Dino Ferrari"
+    },
+    {
+      "round": 8,
+      "raceName": "Monaco Grand Prix",
+      "country": "Monaco",
+      "locality": "Monte Carlo",
+      "date": "2025-05-25",
+      "time": "14:00:00Z",
+      "circuit": "Circuit de Monaco"
+    },
+    {
+      "round": 9,
+      "raceName": "Spanish Grand Prix",
+      "country": "Spain",
+      "locality": "Barcelona",
+      "date": "2025-06-01",
+      "time": "14:00:00Z",
+      "circuit": "Circuit de Barcelona-Catalunya"
+    },
+    {
+      "round": 10,
+      "raceName": "Canadian Grand Prix",
+      "country": "Canada",
+      "locality": "Montreal",
+      "date": "2025-06-15",
+      "time": "19:00:00Z",
+      "circuit": "Circuit Gilles Villeneuve"
+    },
+    {
+      "round": 11,
+      "raceName": "Austrian Grand Prix",
+      "country": "Austria",
+      "locality": "Spielberg",
+      "date": "2025-06-29",
+      "time": "14:00:00Z",
+      "circuit": "Red Bull Ring"
+    },
+    {
+      "round": 12,
+      "raceName": "British Grand Prix",
+      "country": "UK",
+      "locality": "Silverstone",
+      "date": "2025-07-06",
+      "time": "14:00:00Z",
+      "circuit": "Silverstone Circuit"
+    },
+    {
+      "round": 13,
+      "raceName": "Belgian Grand Prix",
+      "country": "Belgium",
+      "locality": "Spa-Francorchamps",
+      "date": "2025-07-27",
+      "time": "14:00:00Z",
+      "circuit": "Circuit de Spa-Francorchamps"
+    },
+    {
+      "round": 14,
+      "raceName": "Hungarian Grand Prix",
+      "country": "Hungary",
+      "locality": "Budapest",
+      "date": "2025-08-03",
+      "time": "14:00:00Z",
+      "circuit": "Hungaroring"
+    },
+    {
+      "round": 15,
+      "raceName": "Dutch Grand Prix",
+      "country": "Netherlands",
+      "locality": "Zandvoort",
+      "date": "2025-08-31",
+      "time": "14:00:00Z",
+      "circuit": "Circuit Zandvoort"
+    },
+    {
+      "round": 16,
+      "raceName": "Italian Grand Prix",
+      "country": "Italy",
+      "locality": "Monza",
+      "date": "2025-09-07",
+      "time": "14:00:00Z",
+      "circuit": "Autodromo Nazionale Monza"
+    },
+    {
+      "round": 17,
+      "raceName": "Azerbaijan Grand Prix",
+      "country": "Azerbaijan",
+      "locality": "Baku",
+      "date": "2025-09-21",
+      "time": "12:00:00Z",
+      "circuit": "Baku City Circuit"
+    },
+    {
+      "round": 18,
+      "raceName": "Singapore Grand Prix",
+      "country": "Singapore",
+      "locality": "Marina Bay",
+      "date": "2025-10-05",
+      "time": "13:00:00Z",
+      "circuit": "Marina Bay Street Circuit"
+    },
+    {
+      "round": 19,
+      "raceName": "United States Grand Prix",
+      "country": "USA",
+      "locality": "Austin",
+      "date": "2025-10-19",
+      "time": "20:00:00Z",
+      "circuit": "Circuit of the Americas"
+    },
+    {
+      "round": 20,
+      "raceName": "Mexican Grand Prix",
+      "country": "Mexico",
+      "locality": "Mexico City",
+      "date": "2025-10-26",
+      "time": "20:00:00Z",
+      "circuit": "Autódromo Hermanos Rodríguez"
+    },
+    {
+      "round": 21,
+      "raceName": "Brazilian Grand Prix",
+      "country": "Brazil",
+      "locality": "São Paulo",
+      "date": "2025-11-09",
+      "time": "18:00:00Z",
+      "circuit": "Autódromo José Carlos Pace"
+    },
+    {
+      "round": 22,
+      "raceName": "Qatar Grand Prix",
+      "country": "Qatar",
+      "locality": "Lusail",
+      "date": "2025-11-23",
+      "time": "17:00:00Z",
+      "circuit": "Lusail International Circuit"
+    },
+    {
+      "round": 23,
+      "raceName": "Abu Dhabi Grand Prix",
+      "country": "UAE",
+      "locality": "Yas Island",
+      "date": "2025-12-07",
+      "time": "17:00:00Z",
+      "circuit": "Yas Marina Circuit"
+    }
+  ]
+}
+
