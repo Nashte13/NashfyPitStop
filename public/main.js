@@ -716,11 +716,27 @@ class RealTimeData {
     }
   }
 
-  loadVenues() {
+  async loadVenues() {
+    // Try to load from Sanity CMS, fallback to mock data
+    try {
+      if (typeof sanity !== 'undefined' && sanity.projectId !== 'YOUR_PROJECT_ID') {
+        const venuesData = await sanity.getVenues();
+        if (venuesData && venuesData.length > 0) {
+          console.log('✅ Loaded venues from Sanity:', venuesData.length);
+          this.renderVenues(venuesData);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Error loading venues from Sanity, using fallback:', error);
+    }
+
+    // Fallback to mock data
     const venuesData = [
       {
         name: "K1 Klubhouse",
         location: "Westlands, Nairobi",
+        city: "Nairobi",
         description: "Premium sports bar with large screens and great atmosphere",
         capacity: "50+ people",
         amenities: ["Large Screens", "Food & Drinks", "Parking"]
@@ -728,6 +744,7 @@ class RealTimeData {
       {
         name: "Brew Bistro",
         location: "Lavington, Nairobi",
+        city: "Nairobi",
         description: "Cozy venue with craft beer and F1 fan community",
         capacity: "30+ people",
         amenities: ["Craft Beer", "Snacks", "WiFi"]
@@ -735,6 +752,7 @@ class RealTimeData {
       {
         name: "Tamarind Mombasa",
         location: "Mombasa",
+        city: "Mombasa",
         description: "Beachfront venue with ocean views during races",
         capacity: "40+ people",
         amenities: ["Ocean View", "Fresh Seafood", "AC"]
@@ -742,6 +760,7 @@ class RealTimeData {
       {
         name: "Sky Lounge Kampala",
         location: "Kampala, Uganda",
+        city: "Kampala",
         description: "Rooftop venue with city views and premium experience",
         capacity: "60+ people",
         amenities: ["Rooftop", "Premium Bar", "City Views"]
@@ -757,19 +776,26 @@ class RealTimeData {
 
     venuesList.innerHTML = "";
     venuesData.forEach(venue => {
+      const location = venue.location || `${venue.city || ''}`.trim();
+      const amenities = venue.amenities || [];
+      const imageUrl = venue.imageUrl || '';
+      
       const card = document.createElement("div");
       card.className = "glass-card";
       card.innerHTML = `
+        ${imageUrl ? `<img src="${imageUrl}" alt="${venue.name}" class="w-full h-48 object-cover rounded-lg mb-3">` : ''}
         <h4 class="font-bold text-blue-900 mb-2">${venue.name}</h4>
-        <p class="text-blue-600 text-sm mb-2">📍 ${venue.location}</p>
+        <p class="text-blue-600 text-sm mb-2">📍 ${location}</p>
         <p class="text-blue-700 mb-3">${venue.description}</p>
         <div class="space-y-2">
           <div class="text-sm text-blue-600">👥 ${venue.capacity}</div>
+          ${amenities.length > 0 ? `
           <div class="flex flex-wrap gap-1">
-            ${venue.amenities.map(amenity => 
+            ${amenities.map(amenity => 
               `<span class="chip bg-green-100 text-green-700 text-xs">${amenity}</span>`
             ).join('')}
           </div>
+          ` : ''}
         </div>
       `;
       venuesList.appendChild(card);
@@ -878,6 +904,109 @@ class BlogPage {
     this.setupTabs();
     this.loadF1News();
     this.loadNashfyNews();
+  }
+
+  async loadNashfyNews() {
+    // Try to load from Sanity CMS, fallback to mock data
+    try {
+      if (typeof sanity !== 'undefined' && sanity.projectId !== 'YOUR_PROJECT_ID') {
+        const newsData = await sanity.getBlogPosts();
+        if (newsData && newsData.length > 0) {
+          console.log('✅ Loaded NashfyPitStop news from Sanity:', newsData.length);
+          // Format dates for display
+          const formattedNews = newsData.map(news => ({
+            ...news,
+            date: news.date ? new Date(news.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date TBD'
+          }));
+          this.renderNashfyNews(formattedNews);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Error loading NashfyPitStop news from Sanity, using fallback:', error);
+    }
+
+    // Fallback to mock data
+    this.loadNashfyNewsFallback();
+  }
+
+  loadNashfyNewsFallback() {
+    const nashfyNewsData = [
+      {
+        type: 'fan-reaction',
+        title: 'Saudi Arabian GP - Fan Reactions',
+        content: 'The energy at K1 Klubhouse was electric! Verstappen fans were celebrating while Lando supporters were thrilled with his podium finish. The crowd went wild during that final lap battle!',
+        author: 'Community Reporter',
+        date: 'March 8, 2025',
+        location: 'Nairobi, Kenya',
+        reactions: ['🔥', '🏎️', '💪']
+      },
+      {
+        type: 'gossip',
+        title: 'Rumors: Hamilton-Ferrari Chemistry',
+        content: 'Word around the paddock is that Lewis is already making waves at Ferrari. Some insiders say the team dynamic is shifting, and we might see a different strategy approach this season.',
+        author: 'F1 Insider',
+        date: 'March 7, 2025',
+        location: 'East Africa F1 Community',
+        reactions: ['🤫', '🔴', '💭']
+      },
+      {
+        type: 'watch-party',
+        title: 'Mombasa Watch Party Recap',
+        content: 'Tamarind Mombasa hosted an amazing watch party! Over 40 fans gathered, enjoying fresh seafood while watching the race. The ocean view made it even more special. Already planning the next one!',
+        author: 'Event Coordinator',
+        date: 'March 8, 2025',
+        location: 'Mombasa, Kenya',
+        reactions: ['🌊', '🍽️', '🎉']
+      },
+      {
+        type: 'fan-opinion',
+        title: 'Why East Africa Needs More F1 Coverage',
+        content: 'As a long-time F1 fan in Kenya, I believe we need better local coverage. The passion is here, but we need more accessible content in our timezone and language. What do you think?',
+        author: 'Kipchoge M.',
+        date: 'March 6, 2025',
+        location: 'Nairobi, Kenya',
+        reactions: ['💬', '📺', '🌍']
+      },
+      {
+        type: 'gossip',
+        title: 'Red Bull Dominance - Is It Sustainable?',
+        content: 'Everyone is talking about Red Bull\'s continued dominance. Some fans think the regulations need adjustment, while others believe it\'s just superior engineering. The debate is heating up in our community!',
+        author: 'F1 Analyst',
+        date: 'March 5, 2025',
+        location: 'East Africa F1 Community',
+        reactions: ['⚡', '🏆', '🤔']
+      },
+      {
+        type: 'watch-party',
+        title: 'Kampala Rooftop Experience',
+        content: 'Sky Lounge Kampala delivered an incredible experience! The rooftop setting with city views was perfect. Great turnout, amazing atmosphere, and the race was absolutely thrilling. Can\'t wait for the next GP!',
+        author: 'Event Organizer',
+        date: 'March 8, 2025',
+        location: 'Kampala, Uganda',
+        reactions: ['🏙️', '✨', '🎊']
+      },
+      {
+        type: 'fan-reaction',
+        title: 'Charles Leclerc\'s Podium - Fan Celebration',
+        content: 'Ferrari fans in Dar es Salaam were ecstatic! Charles finally got that podium finish. The watch party erupted when he crossed the line. This is what F1 community is all about!',
+        author: 'Community Member',
+        date: 'March 8, 2025',
+        location: 'Dar es Salaam, Tanzania',
+        reactions: ['🔴', '🏁', '🎉']
+      },
+      {
+        type: 'fan-opinion',
+        title: 'The Future of F1 in Africa',
+        content: 'With growing interest across East Africa, I believe we\'re ready for an African Grand Prix. The passion, the community, and the infrastructure are developing. It\'s only a matter of time!',
+        author: 'F1 Enthusiast',
+        date: 'March 4, 2025',
+        location: 'Kigali, Rwanda',
+        reactions: ['🌍', '🏎️', '🚀']
+      }
+    ];
+
+    this.renderNashfyNews(nashfyNewsData);
   }
 
   setupTabs() {
@@ -1014,7 +1143,7 @@ class BlogPage {
     });
   }
 
-  loadNashfyNews() {
+  loadNashfyNewsFallback() {
     const nashfyNewsData = [
       {
         type: 'fan-reaction',
@@ -1160,11 +1289,27 @@ class JoinClubForm {
     });
   }
 
-  handleSubmit(form) {
+  async handleSubmit(form) {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
     
-    // Simulate form submission
+    // Try to submit to Sanity CMS
+    try {
+      if (typeof sanity !== 'undefined' && sanity.projectId !== 'YOUR_PROJECT_ID') {
+        const result = await sanity.submitJoinClubForm(data);
+        if (result.success) {
+          alert("Welcome to NashfyPitStop! You've successfully joined our community. We'll send you updates about upcoming events and races.");
+          form.reset();
+          return;
+        } else {
+          console.warn('Form submission to Sanity failed, using fallback');
+        }
+      }
+    } catch (error) {
+      console.warn('Error submitting form to Sanity:', error);
+    }
+    
+    // Fallback: Simulate form submission
     alert("Welcome to NashfyPitStop! You've successfully joined our community. We'll send you updates about upcoming events and races.");
     
     // Reset form

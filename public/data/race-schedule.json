@@ -51,7 +51,7 @@
       "country": "USA",
       "locality": "Miami",
       "date": "2025-05-04",
-      "time": "20:00:00Z",
+      "time": "19:00:00Z",
       "circuit": "Miami International Autodrome"
     },
     {
@@ -168,7 +168,7 @@
       "country": "USA",
       "locality": "Austin",
       "date": "2025-10-19",
-      "time": "20:00:00Z",
+      "time": "19:00:00Z",
       "circuit": "Circuit of the Americas"
     },
     {
@@ -177,7 +177,7 @@
       "country": "Mexico",
       "locality": "Mexico City",
       "date": "2025-10-26",
-      "time": "20:00:00Z",
+      "time": "19:00:00Z",
       "circuit": "Autódromo Hermanos Rodríguez"
     },
     {
@@ -191,15 +191,24 @@
     },
     {
       "round": 22,
+      "raceName": "Las Vegas Grand Prix",
+      "country": "USA",
+      "locality": "Las Vegas",
+      "date": "2025-11-23",
+      "time": "06:00:00Z",
+      "circuit": "Las Vegas Strip Circuit"
+    },
+    {
+      "round": 23,
       "raceName": "Qatar Grand Prix",
       "country": "Qatar",
       "locality": "Lusail",
-      "date": "2025-11-23",
+      "date": "2025-11-30",
       "time": "17:00:00Z",
       "circuit": "Lusail International Circuit"
     },
     {
-      "round": 23,
+      "round": 24,
       "raceName": "Abu Dhabi Grand Prix",
       "country": "UAE",
       "locality": "Yas Island",
@@ -209,4 +218,3 @@
     }
   ]
 }
-
