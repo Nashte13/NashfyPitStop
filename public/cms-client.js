@@ -5,7 +5,8 @@ class SanityClient {
     this.projectId = 'j5jgcp4i'; // Get from Sanity dashboard
     this.dataset = 'production'; // or 'development'
     this.apiVersion = '2024-01-01';
-    this.baseUrl = `https://${this.projectId}.api.sanity.io/v${this.apiVersion}/data/query/${this.dataset}`;
+    // Using CDN endpoint for better CORS handling
+    this.baseUrl = `https://${this.projectId}.apicdn.sanity.io/v${this.apiVersion}/data/query/${this.dataset}`;
     this.writeUrl = `https://${this.projectId}.api.sanity.io/v${this.apiVersion}/data/mutate/${this.dataset}`;
     this.writeToken = null; // Set this for form submissions (optional, can use serverless functions instead)
   }
@@ -14,16 +15,43 @@ class SanityClient {
   async query(groqQuery) {
     try {
       const url = `${this.baseUrl}?query=${encodeURIComponent(groqQuery)}`;
-      const response = await fetch(url);
+      console.log('🔵 Sanity API URL:', url);
+      console.log('🔵 Query:', groqQuery);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        // Add mode to handle CORS
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      console.log('🔵 Response status:', response.status, response.statusText);
       
       if (!response.ok) {
-        throw new Error(`Sanity API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('❌ Sanity API error response:', errorText);
+        throw new Error(`Sanity API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('🔵 Sanity API response:', data);
       return data.result;
     } catch (error) {
-      console.error('Error fetching from Sanity:', error);
+      console.error('❌ Error fetching from Sanity:', error);
+      console.error('❌ Error type:', error.name);
+      console.error('❌ Error message:', error.message);
+      
+      // Check if it's a CORS error
+      if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+        console.error('❌ This might be a CORS issue. Check:');
+        console.error('   1. Project ID is correct:', this.projectId);
+        console.error('   2. Dataset name is correct:', this.dataset);
+        console.error('   3. Sanity project allows CORS (should be enabled by default)');
+      }
+      
       throw error;
     }
   }

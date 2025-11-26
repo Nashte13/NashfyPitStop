@@ -116,6 +116,16 @@ class Navigation {
         targetSection.classList.add('fade-in');
       }, 50);
       this.currentSection = sectionId;
+      
+      // Reload venues when watch-party section is shown
+      if (sectionId === 'watch-party') {
+        // Small delay to ensure section is visible
+        setTimeout(() => {
+          if (window.realTimeData) {
+            window.realTimeData.loadVenues();
+          }
+        }, 100);
+      }
     }
   }
 
@@ -720,15 +730,24 @@ class RealTimeData {
     // Try to load from Sanity CMS, fallback to mock data
     try {
       if (typeof sanity !== 'undefined' && sanity.projectId !== 'YOUR_PROJECT_ID') {
+        console.log('🔵 Attempting to load venues from Sanity...');
+        console.log('🔵 Project ID:', sanity.projectId);
         const venuesData = await sanity.getVenues();
+        console.log('🔵 Raw venues data from Sanity:', venuesData);
+        
         if (venuesData && venuesData.length > 0) {
-          console.log('✅ Loaded venues from Sanity:', venuesData.length);
+          console.log('✅ Loaded venues from Sanity:', venuesData.length, 'venues');
           this.renderVenues(venuesData);
           return;
+        } else {
+          console.warn('⚠️ Sanity returned empty array or no venues found');
         }
+      } else {
+        console.warn('⚠️ Sanity not configured properly. Project ID:', typeof sanity !== 'undefined' ? sanity.projectId : 'undefined');
       }
     } catch (error) {
-      console.warn('⚠️ Error loading venues from Sanity, using fallback:', error);
+      console.error('❌ Error loading venues from Sanity:', error);
+      console.error('❌ Error details:', error.message);
     }
 
     // Fallback to mock data
@@ -1319,8 +1338,9 @@ class JoinClubForm {
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
-  new Navigation();
-  new RealTimeData();
+  const navigation = new Navigation();
+  const realTimeData = new RealTimeData();
+  window.realTimeData = realTimeData; // Make accessible globally for section navigation
   new QuizSystem();
   new JoinClubForm();
   new BlogPage();
