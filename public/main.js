@@ -269,102 +269,118 @@ class RealTimeData {
       scheduleList.innerHTML = '<div class="col-span-2 text-center py-8 text-blue-600"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-4"></div><p>Loading schedule...</p></div>';
     }
 
-    // Try API first, fallback to manual data
     let races = [];
-    let useManualData = false;
+    let dataSource = 'unknown';
 
+    // Tier 1: Try Python Backend (FastF1)
     try {
-      const url = 'https://f1-race-schedule.p.rapidapi.com/api';
-      const options = {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-key': '4ac3a74c27msh0f95c51c4289c6bp15bd56jsna05879d977db',
-          'x-rapidapi-host': 'f1-race-schedule.p.rapidapi.com'
-        }
-      };
-
-      const res = await fetch(url, options);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      console.log('🔵 Attempting to fetch from Python backend (FastF1)...');
+      const backendData = await backend.getRaceSchedule(year, false);
       
-      const data = await res.json();
-      console.log('🔵 F1 Race Schedule API Response (RAW):', data);
-      
-      // Parse the response - handle different possible formats
-      if (Array.isArray(data)) {
-        races = data;
-      } else if (data.races && Array.isArray(data.races)) {
-        races = data.races;
-      } else if (data.data && Array.isArray(data.data)) {
-        races = data.data;
-      } else if (data.schedule && Array.isArray(data.schedule)) {
-        races = data.schedule;
+      if (backendData && backendData.success && backendData.races && backendData.races.length > 0) {
+        races = backendData.races;
+        dataSource = 'backend-fastf1';
+        console.log('✅ Loaded race schedule from Python backend (FastF1):', races.length, 'races');
       } else {
-        console.warn('⚠️ API response format not recognized, using manual data');
-        useManualData = true;
+        throw new Error('Backend returned empty or invalid data');
       }
+    } catch (backendError) {
+      console.warn('⚠️ Backend unavailable or failed:', backendError.message);
+      console.log('📝 Trying fallback: RapidAPI...');
       
-      // Validate API data quality
-      if (races.length > 0) {
-        const hasValidData = races.some(race => {
-          const raceName = race.raceName || race.name || race.grandPrix || race.title;
-          return raceName && raceName !== 'Unknown' && raceName !== 'unknown';
-        });
-        
-        if (!hasValidData) {
-          console.warn('⚠️ API data appears invalid (missing race names), using manual data');
-          useManualData = true;
-        }
-      } else {
-        useManualData = true;
-      }
-      
-    } catch (e) {
-      console.error('❌ Error loading race schedule from API:', e);
-      console.log('📝 Falling back to manual data file');
-      useManualData = true;
-    }
-
-    // Load manual data if API failed or data is invalid
-    if (useManualData) {
+      // Tier 2: Fallback to RapidAPI
       try {
-        const manualRes = await fetch('./data/race-schedule.json');
-        if (manualRes.ok) {
-          const manualData = await manualRes.json();
-          races = manualData.races || [];
-          console.log('✅ Loaded manual race schedule data:', races.length, 'races');
-        } else {
-          throw new Error('Manual data file not found');
+        const url = 'https://f1-race-schedule.p.rapidapi.com/api';
+        const options = {
+          method: 'GET',
+          headers: {
+            'x-rapidapi-key': '4ac3a74c27msh0f95c51c4289c6bp15bd56jsna05879d977db',
+            'x-rapidapi-host': 'f1-race-schedule.p.rapidapi.com'
+          }
+        };
+
+        const res = await fetch(url, options);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
         }
-      } catch (e) {
-        console.error('❌ Error loading manual data:', e);
-        this.renderMockSchedule();
-        return;
+        
+        const data = await res.json();
+        console.log('🔵 RapidAPI Response:', data);
+        
+        // Parse the response - handle different possible formats
+        if (Array.isArray(data)) {
+          races = data;
+        } else if (data.races && Array.isArray(data.races)) {
+          races = data.races;
+        } else if (data.data && Array.isArray(data.data)) {
+          races = data.data;
+        } else if (data.schedule && Array.isArray(data.schedule)) {
+          races = data.schedule;
+        } else {
+          throw new Error('Invalid API response format');
+        }
+        
+        // Validate API data quality
+        if (races.length > 0) {
+          const hasValidData = races.some(race => {
+            const raceName = race.raceName || race.name || race.grandPrix || race.title;
+            return raceName && raceName !== 'Unknown' && raceName !== 'unknown';
+          });
+          
+          if (hasValidData) {
+            dataSource = 'rapidapi';
+            console.log('✅ Loaded race schedule from RapidAPI:', races.length, 'races');
+          } else {
+            throw new Error('API data appears invalid');
+          }
+        } else {
+          throw new Error('API returned empty array');
+        }
+      } catch (rapidApiError) {
+        console.warn('⚠️ RapidAPI failed:', rapidApiError.message);
+        console.log('📝 Falling back to manual data file...');
+        
+        // Tier 3: Fallback to manual JSON file
+        try {
+          const manualRes = await fetch('./data/race-schedule.json');
+          if (manualRes.ok) {
+            const manualData = await manualRes.json();
+            races = manualData.races || [];
+            dataSource = 'manual-json';
+            console.log('✅ Loaded manual race schedule data:', races.length, 'races');
+          } else {
+            throw new Error('Manual data file not found');
+          }
+        } catch (manualError) {
+          console.error('❌ All data sources failed:', manualError);
+          this.renderMockSchedule();
+          return;
+        }
       }
     }
     
-    // Filter by year
-    const currentYear = new Date().getFullYear();
-    if (year !== currentYear) {
-      races = races.filter(race => {
-        const raceYear = this.extractYearFromRace(race);
-        return raceYear === year;
-      });
-    } else {
-      // For current year, only show races from this year
-      races = races.filter(race => {
-        const raceYear = this.extractYearFromRace(race);
-        return raceYear === currentYear;
-      });
+    // Filter by year (if needed - backend already filters, but manual data might need it)
+    if (dataSource === 'rapidapi' || dataSource === 'manual-json') {
+      const currentYear = new Date().getFullYear();
+      if (year !== currentYear) {
+        races = races.filter(race => {
+          const raceYear = this.extractYearFromRace(race);
+          return raceYear === year;
+        });
+      } else {
+        races = races.filter(race => {
+          const raceYear = this.extractYearFromRace(race);
+          return raceYear === currentYear;
+        });
+      }
     }
     
-    console.log('📊 Final parsed races for', year, ':', races.length, 'races');
-    console.log('📋 Races:', races);
+    console.log('📊 Final parsed races for', year, ':', races.length, 'races (Source:', dataSource, ')');
     
     if (races.length > 0) {
       this.renderSchedule(races, year);
       // Only update countdown if viewing current year
+      const currentYear = new Date().getFullYear();
       if (year === currentYear) {
         this.startRaceCountdown(races);
       }
@@ -470,7 +486,9 @@ class RealTimeData {
       return new Date(race.startDate);
     }
     if (race.datetime) {
-      return new Date(race.datetime);
+      // Handle ISO format with timezone
+      const dt = race.datetime.replace('+03:00', '').replace('Z', '');
+      return new Date(dt);
     }
     // Default to far future if can't parse
     return new Date('2099-12-31');
@@ -524,9 +542,33 @@ class RealTimeData {
     });
   }
 
-  startRaceCountdown(races) {
+  async startRaceCountdown(races) {
     const now = new Date();
     
+    // Try to get next race from backend first (more accurate)
+    try {
+      const nextRaceData = await backend.getNextRace();
+      if (nextRaceData && nextRaceData.success && nextRaceData.race) {
+        const race = nextRaceData.race;
+        const countdown = nextRaceData.countdown;
+        
+        // Update race name
+        const nextRaceNameEl = document.getElementById('nextRaceName');
+        if (nextRaceNameEl) {
+          nextRaceNameEl.textContent = race.raceName || 'Next Race';
+        }
+        
+        // Start countdown with backend data
+        if (countdown && countdown.total_seconds > 0) {
+          this.updateCountdownFromBackend(countdown, race);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not get next race from backend, using local calculation:', error.message);
+    }
+    
+    // Fallback: Calculate from races array
     // Sort races by date and find the next upcoming race (not past)
     const sortedRaces = races.sort((a, b) => {
       const dateA = this.parseRaceDate(a);
@@ -563,6 +605,65 @@ class RealTimeData {
         raceNameEl.textContent = "No upcoming races";
       }
     }
+  }
+
+  updateCountdownFromBackend(countdown, race) {
+    const el = document.getElementById("nextRaceCountdown");
+    const raceNameEl = document.getElementById("nextRaceName");
+    
+    if (!el) return;
+    
+    // Update race name
+    if (raceNameEl) {
+      raceNameEl.textContent = `${race.raceName || 'Next Race'} - Countdown`;
+    }
+    
+    // Clear any existing interval
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+    
+    const update = () => {
+      // Re-fetch countdown from backend for accuracy
+      backend.getNextRace().then(nextRaceData => {
+        if (nextRaceData && nextRaceData.success && nextRaceData.countdown) {
+          const cd = nextRaceData.countdown;
+          
+          if (cd.total_seconds <= 0) {
+            el.textContent = "RACE DAY!";
+            el.classList.add("text-red-600", "animate-pulse");
+            if (raceNameEl) {
+              raceNameEl.textContent = `${race.raceName || 'Race'} - LIVE!`;
+            }
+            return;
+          }
+          
+          const days = cd.days;
+          const hours = cd.hours;
+          const minutes = cd.minutes;
+          const seconds = cd.seconds;
+          
+          if (days > 0) {
+            el.textContent = `${days}d ${hours}h ${minutes}m`;
+          } else if (hours > 0) {
+            el.textContent = `${hours}h ${minutes}m ${seconds}s`;
+          } else {
+            el.textContent = `${minutes}m ${seconds}s`;
+          }
+          
+          el.classList.remove("text-red-600", "animate-pulse");
+        }
+      }).catch(() => {
+        // Fallback to local calculation if backend fails
+        if (race.datetime) {
+          const targetDate = new Date(race.datetime);
+          this.updateCountdown(targetDate, race.raceName);
+        }
+      });
+    };
+    
+    update(); // Initial update
+    this.countdownInterval = setInterval(update, 1000); // Update every second
   }
 
   updateCountdown(targetDate, raceName = "") {

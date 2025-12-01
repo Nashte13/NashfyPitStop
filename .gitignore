@@ -2,16 +2,23 @@ node_modules/
 public/assets/tailwind.css
 .DS_Store
 npm-debug.log*
-CODEBASE_ANALYSIS.md
-CODEBASE_ANALYSIS.md.md
-CMS_INTEGRATION_PLAN.md
-CMS_SETUP_GUIDE.md
-README.md
-SANITY_SETUP_INSTRUCTIONS.md
-QUICK_START_SANITY.md
-SANITY_NEXT_STEPS.md
-TROUBLESHOOTING_SANITY.md
-SANITY_CORS_SETUP.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+backend/cache/
+backend/__pycache__/
+*.egg-info/
+dist/
+build/
+
 
 
 
