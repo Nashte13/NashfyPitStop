@@ -261,6 +261,167 @@ class BackendClient {
       throw error;
     }
   }
+
+  /**
+   * Get comprehensive race information
+   */
+  async getRaceInfo(year = 2025, round = 1, session = 'R') {
+    try {
+      const url = `${this.apiUrl}/race-info?year=${year}&round=${round}&session=${session}`;
+      console.log('🔵 Fetching race info from backend:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ Race info loaded from backend');
+        return data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching race info from backend:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get track status
+   */
+  async getTrackStatus(year = 2025, round = 1, session = 'R') {
+    try {
+      const url = `${this.apiUrl}/track-status?year=${year}&round=${round}&session=${session}`;
+      console.log('🔵 Fetching track status from backend:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ Track status loaded from backend');
+        return data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching track status from backend:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get race reactions
+   */
+  async getRaceReactions(raceYear, raceRound) {
+    try {
+      const url = `${this.apiUrl}/race-reactions?race_year=${raceYear}&race_round=${raceRound}`;
+      console.log('🔵 Fetching race reactions from backend:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Race reactions loaded from backend');
+      return data;
+    } catch (error) {
+      console.error('❌ Error fetching race reactions from backend:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create race reaction
+   */
+  async createRaceReaction(reactionData) {
+    try {
+      const url = `${this.apiUrl}/race-reactions`;
+      console.log('🔵 Creating race reaction:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reactionData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Race reaction created');
+      return data;
+    } catch (error) {
+      console.error('❌ Error creating race reaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user is a club member
+   */
+  async checkClubMember(email) {
+    try {
+      const url = `${this.apiUrl}/club-members/check?email=${encodeURIComponent(email)}`;
+      console.log('🔵 Checking club membership:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('❌ Error checking club membership:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Join club
+   */
+  async joinClub(memberData) {
+    try {
+      const url = `${this.apiUrl}/club-members`;
+      console.log('🔵 Joining club:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(memberData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Joined club successfully');
+      return data;
+    } catch (error) {
+      console.error('❌ Error joining club:', error);
+      throw error;
+    }
+  }
 }
 
 // Initialize backend client

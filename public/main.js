@@ -33,6 +33,7 @@ class Navigation {
       'about': 'About | NashfyPitStop',
       'watch-party': 'Watch Party Venues | NashfyPitStop',
       'blogs': 'F1 News & Community | NashfyPitStop',
+      'race-info': 'Race Information | NashfyPitStop',
       'join-club': 'Join the Club | NashfyPitStop'
     };
     this.init();
@@ -215,7 +216,7 @@ class RealTimeData {
     this.loadNews();
     this.loadVenues();
     // Blog functionality moved to BlogPage class
-    this.loadRaceReactions();
+    this.loadLatestRaceResults(); // Load latest race results
   }
 
   setupScheduleControls() {
@@ -987,15 +988,134 @@ class RealTimeData {
 
   // Blog functionality moved to BlogPage class
 
-  loadRaceReactions() {
-    const reactionsData = [
-      { name: "Kipchoge", comment: "Verstappen is absolutely unstoppable! 🏎️", time: "2 hours ago" },
-      { name: "Wanjiku", comment: "Lando finally getting the results he deserves! 💪", time: "1 hour ago" },
-      { name: "Musa", comment: "That overtake was incredible! F1 never disappoints", time: "45 min ago" },
-      { name: "Grace", comment: "Can't wait for the next race weekend! 🏁", time: "30 min ago" }
-    ];
+  async loadLatestRaceResults() {
+    const resultsSection = document.getElementById("raceResultsSection");
+    if (!resultsSection) return;
 
-    this.renderRaceReactions(reactionsData);
+    try {
+      // Try to get latest race results from backend
+      const currentYear = new Date().getFullYear();
+      const resultsData = await backend.getRaceResults(currentYear, null, true);
+      
+      if (resultsData && resultsData.success && resultsData.results && !resultsData.results.error) {
+        const race = resultsData.results;
+        this.renderRaceResults(race);
+        // Load reactions for this race
+        await this.loadRaceReactions(race.year, race.round);
+      } else {
+        // Fallback: Show message
+        resultsSection.innerHTML = `
+          <div class="glass-card p-6 text-center">
+            <p class="text-blue-600">No completed races found for this season yet.</p>
+            <p class="text-sm text-blue-500 mt-2">Check back after the first race!</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading race results:', error);
+      resultsSection.innerHTML = `
+        <div class="glass-card p-6 text-center">
+          <p class="text-blue-600">Unable to load race results. Please try again later.</p>
+        </div>
+      `;
+    }
+  }
+
+  renderRaceResults(race) {
+    const resultsSection = document.getElementById("raceResultsSection");
+    if (!resultsSection || !race.results || race.results.length === 0) return;
+
+    // Get top 3
+    const top3 = race.results.slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+    const medalColors = ['text-yellow-600', 'text-gray-400', 'text-orange-400'];
+
+    const raceDate = race.date ? new Date(race.date).toLocaleDateString('en-KE', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }) : 'Date TBD';
+
+    resultsSection.innerHTML = `
+      <div class="glass-card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-bold text-blue-900 text-lg">${race.raceName || 'Race Results'}</h4>
+          <span class="text-sm text-blue-600">${raceDate}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          ${top3.map((driver, idx) => `
+            <div class="text-center">
+              <div class="text-2xl font-bold ${medalColors[idx]}">${medals[idx]}</div>
+              <div class="text-sm font-semibold text-blue-900">${driver.position}. ${driver.driverName || driver.driver}</div>
+              <div class="text-xs text-blue-600">${driver.team || ''}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="border-t border-blue-200 pt-4">
+          <h5 class="font-semibold text-blue-900 mb-3">Full Results</h5>
+          <div class="space-y-2 max-h-60 overflow-y-auto">
+            ${race.results.map(driver => `
+              <div class="flex items-center justify-between text-sm glass-card p-2">
+                <div class="flex items-center gap-3">
+                  <span class="font-semibold text-blue-900 w-6">${driver.position || '-'}</span>
+                  <div>
+                    <div class="font-medium text-blue-900">${driver.driverName || driver.driver}</div>
+                    <div class="text-xs text-blue-600">${driver.team || ''}</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="font-semibold text-orange-600">${driver.points || 0} pts</div>
+                  ${driver.time ? `<div class="text-xs text-blue-600">${driver.time}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="border-t border-blue-200 pt-4 mt-4" id="raceReactionsContainer">
+          <h5 class="font-semibold text-blue-900 mb-3">Fan Reactions</h5>
+          <div id="raceReactions" class="space-y-2 mb-4">
+            <div class="text-center py-4 text-blue-600 text-sm">Loading reactions...</div>
+          </div>
+          <div id="reactionFormContainer">
+            <!-- Reaction form will be inserted here -->
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Store race info for reactions
+    this.currentRaceYear = race.year;
+    this.currentRaceRound = race.round;
+    this.currentRaceName = race.raceName;
+
+    // Setup reaction form
+    this.setupReactionForm();
+  }
+
+  async loadRaceReactions(raceYear, raceRound) {
+    const reactionsContainer = document.getElementById("raceReactions");
+    if (!reactionsContainer) return;
+
+    try {
+      const reactions = await backend.getRaceReactions(raceYear, raceRound);
+      
+      if (reactions && reactions.length > 0) {
+        this.renderRaceReactions(reactions);
+      } else {
+        reactionsContainer.innerHTML = `
+          <div class="text-center py-4 text-blue-600 text-sm">
+            No reactions yet. Be the first to share your thoughts!
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading reactions:', error);
+      reactionsContainer.innerHTML = `
+        <div class="text-center py-4 text-red-600 text-sm">
+          Unable to load reactions. Please try again later.
+        </div>
+      `;
+    }
   }
 
   renderRaceReactions(reactionsData) {
@@ -1006,15 +1126,134 @@ class RealTimeData {
     reactionsData.forEach(reaction => {
       const reactionEl = document.createElement("div");
       reactionEl.className = "glass-card p-3 text-sm";
+      const timeAgo = this.getTimeAgo(new Date(reaction.created_at));
       reactionEl.innerHTML = `
         <div class="flex items-center justify-between mb-1">
-          <span class="font-semibold text-blue-900">${reaction.name}</span>
-          <span class="text-blue-500">${reaction.time}</span>
+          <span class="font-semibold text-blue-900">${reaction.member_name}</span>
+          <span class="text-blue-500 text-xs">${timeAgo}</span>
         </div>
-        <p class="text-blue-700">${reaction.comment}</p>
+        ${reaction.reaction_type ? `<div class="text-lg mb-1">${reaction.reaction_type}</div>` : ''}
+        ${reaction.comment ? `<p class="text-blue-700">${reaction.comment}</p>` : ''}
       `;
       reactionsContainer.appendChild(reactionEl);
     });
+  }
+
+  setupReactionForm() {
+    const formContainer = document.getElementById("reactionFormContainer");
+    if (!formContainer) return;
+
+    formContainer.innerHTML = `
+      <div class="glass-card p-4">
+        <h6 class="font-semibold text-blue-900 mb-3">Share Your Reaction</h6>
+        <form id="reactionForm" class="space-y-3">
+          <input type="email" id="reactionEmail" placeholder="Your email (must be a club member)" 
+            class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 placeholder-blue-500 focus:outline-none focus:ring-2 focus:ring-orange-500" required>
+          <textarea id="reactionComment" placeholder="Share your thoughts about this race..." rows="3"
+            class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 placeholder-blue-500 focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+          <div class="flex gap-2">
+            <button type="button" class="reaction-emoji-btn px-3 py-2 bg-white/80 border border-blue-200 rounded-lg hover:bg-orange-50" data-emoji="🏎️">🏎️</button>
+            <button type="button" class="reaction-emoji-btn px-3 py-2 bg-white/80 border border-blue-200 rounded-lg hover:bg-orange-50" data-emoji="🏁">🏁</button>
+            <button type="button" class="reaction-emoji-btn px-3 py-2 bg-white/80 border border-blue-200 rounded-lg hover:bg-orange-50" data-emoji="🔥">🔥</button>
+            <button type="button" class="reaction-emoji-btn px-3 py-2 bg-white/80 border border-blue-200 rounded-lg hover:bg-orange-50" data-emoji="💪">💪</button>
+            <button type="button" class="reaction-emoji-btn px-3 py-2 bg-white/80 border border-blue-200 rounded-lg hover:bg-orange-50" data-emoji="🎉">🎉</button>
+          </div>
+          <button type="submit" class="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition-colors font-semibold">
+            Submit Reaction
+          </button>
+          <p class="text-xs text-blue-600 text-center">You must be a club member to react. <a href="#join-club" class="text-orange-600 hover:underline">Join now</a></p>
+        </form>
+      </div>
+    `;
+
+    // Setup emoji buttons
+    const emojiBtns = formContainer.querySelectorAll('.reaction-emoji-btn');
+    let selectedEmoji = null;
+    emojiBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        emojiBtns.forEach(b => b.classList.remove('ring-2', 'ring-orange-500'));
+        btn.classList.add('ring-2', 'ring-orange-500');
+        selectedEmoji = btn.dataset.emoji;
+      });
+    });
+
+    // Setup form submission
+    const form = document.getElementById("reactionForm");
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.submitReaction(selectedEmoji);
+    });
+  }
+
+  async submitReaction(reactionType) {
+    const emailInput = document.getElementById("reactionEmail");
+    const commentInput = document.getElementById("reactionComment");
+    
+    if (!emailInput || !commentInput) return;
+
+    const email = emailInput.value.trim();
+    const comment = commentInput.value.trim();
+
+    if (!email) {
+      alert('Please enter your email address');
+      return;
+    }
+
+    if (!comment && !reactionType) {
+      alert('Please enter a comment or select a reaction');
+      return;
+    }
+
+    try {
+      // Check if user is a club member
+      const memberCheck = await backend.checkClubMember(email);
+      
+      if (!memberCheck.is_member || !memberCheck.is_approved) {
+        alert('You must be an approved club member to react. Please join the club first!');
+        return;
+      }
+
+      // Submit reaction
+      const reactionData = {
+        member_email: email,
+        race_year: this.currentRaceYear,
+        race_round: this.currentRaceRound,
+        race_name: this.currentRaceName,
+        comment: comment || null,
+        reaction_type: reactionType || null
+      };
+
+      await backend.createRaceReaction(reactionData);
+      
+      // Clear form
+      emailInput.value = '';
+      commentInput.value = '';
+      document.querySelectorAll('.reaction-emoji-btn').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-orange-500');
+      });
+
+      // Reload reactions
+      await this.loadRaceReactions(this.currentRaceYear, this.currentRaceRound);
+      
+      alert('Reaction submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting reaction:', error);
+      alert(error.message || 'Failed to submit reaction. Please try again.');
+    }
+  }
+
+  getTimeAgo(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
   }
 }
 
@@ -1500,6 +1739,173 @@ class JoinClubForm {
   }
 }
 
+// Race Info Page Handler
+class RaceInfoPage {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    const loadBtn = document.getElementById('loadRaceInfoBtn');
+    if (loadBtn) {
+      loadBtn.addEventListener('click', () => this.loadRaceInfo());
+    }
+  }
+
+  async loadRaceInfo() {
+    const year = parseInt(document.getElementById('raceInfoYear')?.value || 2025);
+    const round = parseInt(document.getElementById('raceInfoRound')?.value || 1);
+    const session = document.getElementById('raceInfoSession')?.value || 'R';
+    const contentDiv = document.getElementById('raceInfoContent');
+    
+    if (!contentDiv) return;
+
+    contentDiv.innerHTML = `
+      <div class="text-center py-8 text-blue-600">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-4"></div>
+        <p>Loading race information...</p>
+      </div>
+    `;
+
+    try {
+      const raceInfoData = await backend.getRaceInfo(year, round, session);
+      
+      if (raceInfoData && raceInfoData.success && raceInfoData.race_info) {
+        this.renderRaceInfo(raceInfoData.race_info);
+      } else {
+        contentDiv.innerHTML = `
+          <div class="glass-card p-6 text-center">
+            <p class="text-blue-600">No race information available for this session.</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading race info:', error);
+      contentDiv.innerHTML = `
+        <div class="glass-card p-6 text-center">
+          <p class="text-red-600">Error loading race information. Please try again later.</p>
+          <p class="text-sm text-blue-600 mt-2">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  renderRaceInfo(raceInfo) {
+    const contentDiv = document.getElementById('raceInfoContent');
+    if (!contentDiv) return;
+
+    contentDiv.innerHTML = `
+      <div class="space-y-6">
+        <!-- Race Overview -->
+        <div class="glass-card p-6">
+          <h3 class="text-2xl font-bold text-blue-900 mb-4">${raceInfo.event_name || 'Race Information'}</h3>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-blue-600 mb-1">Location</p>
+              <p class="font-semibold text-blue-900">${raceInfo.location || raceInfo.country || 'N/A'}</p>
+            </div>
+            <div>
+              <p class="text-sm text-blue-600 mb-1">Circuit</p>
+              <p class="font-semibold text-blue-900">${raceInfo.circuit || 'N/A'}</p>
+            </div>
+            <div>
+              <p class="text-sm text-blue-600 mb-1">Date</p>
+              <p class="font-semibold text-blue-900">${raceInfo.date ? new Date(raceInfo.date).toLocaleString('en-KE') : 'N/A'}</p>
+            </div>
+            <div>
+              <p class="text-sm text-blue-600 mb-1">Session</p>
+              <p class="font-semibold text-blue-900">${raceInfo.session || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session Status -->
+        ${raceInfo.session_status ? `
+          <div class="glass-card p-6">
+            <h4 class="text-xl font-bold text-blue-900 mb-3">Session Status</h4>
+            <p class="text-blue-700">${raceInfo.session_status.status || 'N/A'}</p>
+          </div>
+        ` : ''}
+
+        <!-- Track Status -->
+        ${raceInfo.track_status && raceInfo.track_status.status ? `
+          <div class="glass-card p-6">
+            <h4 class="text-xl font-bold text-blue-900 mb-3">Track Status</h4>
+            <div class="space-y-2">
+              ${raceInfo.track_status.status.map((status, idx) => `
+                <div class="flex items-center justify-between p-2 bg-white/50 rounded">
+                  <span class="text-blue-900">${status}</span>
+                  ${raceInfo.track_status.time && raceInfo.track_status.time[idx] ? `
+                    <span class="text-sm text-blue-600">${raceInfo.track_status.time[idx]}</span>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Timing Data -->
+        ${raceInfo.timing_data && raceInfo.timing_data.drivers ? `
+          <div class="glass-card p-6">
+            <h4 class="text-xl font-bold text-blue-900 mb-3">Timing Data</h4>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+              ${Object.entries(raceInfo.timing_data.drivers).map(([driver, data]) => `
+                <div class="flex items-center justify-between p-3 bg-white/50 rounded">
+                  <div>
+                    <p class="font-semibold text-blue-900">${driver}</p>
+                    <p class="text-sm text-blue-600">${data.total_laps || 0} laps</p>
+                  </div>
+                  <div class="text-right">
+                    ${data.best_lap_time ? `
+                      <p class="text-sm font-semibold text-orange-600">Best: ${data.best_lap_time}</p>
+                    ` : ''}
+                    ${data.average_lap_time ? `
+                      <p class="text-xs text-blue-600">Avg: ${data.average_lap_time}</p>
+                    ` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Race Control Messages -->
+        ${raceInfo.race_control_messages && raceInfo.race_control_messages.length > 0 ? `
+          <div class="glass-card p-6">
+            <h4 class="text-xl font-bold text-blue-900 mb-3">Race Control Messages</h4>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              ${raceInfo.race_control_messages.map(msg => `
+                <div class="p-3 bg-white/50 rounded">
+                  <p class="text-sm text-blue-600 mb-1">${msg.time || ''}</p>
+                  <p class="text-blue-900">${msg.message || ''}</p>
+                  ${msg.category ? `<p class="text-xs text-blue-500 mt-1">${msg.category}</p>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Circuit Info -->
+        ${raceInfo.circuit_info ? `
+          <div class="glass-card p-6">
+            <h4 class="text-xl font-bold text-blue-900 mb-3">Circuit Information</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-sm text-blue-600">Corners</p>
+                <p class="text-2xl font-bold text-orange-600">${raceInfo.circuit_info.corners || 0}</p>
+              </div>
+              <div>
+                <p class="text-sm text-blue-600">Marshal Sectors</p>
+                <p class="text-2xl font-bold text-orange-600">${raceInfo.circuit_info.marshal_sectors || 0}</p>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+}
+
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
   const navigation = new Navigation();
@@ -1508,4 +1914,5 @@ document.addEventListener("DOMContentLoaded", () => {
   new QuizSystem();
   new JoinClubForm();
   new BlogPage();
+  new RaceInfoPage();
 });

@@ -22,6 +22,7 @@
           <a href="#about" class="nav-link">About</a>
           <a href="#watch-party" class="nav-link">Watch Party</a>
           <a href="#blogs" class="nav-link">Blogs</a>
+          <a href="#race-info" class="nav-link">Race Info</a>
           <button id="joinClubBtn" class="btn-primary bg-white text-orange-600 hover:bg-orange-50">Join Club</button>
         </nav>
         <button id="mobileMenuBtn" class="md:hidden text-white">
@@ -37,6 +38,7 @@
           <a href="#about" class="block text-white py-2 hover:bg-orange-700 rounded">About</a>
           <a href="#watch-party" class="block text-white py-2 hover:bg-orange-700 rounded">Watch Party</a>
           <a href="#blogs" class="block text-white py-2 hover:bg-orange-700 rounded">Blogs</a>
+          <a href="#race-info" class="block text-white py-2 hover:bg-orange-700 rounded">Race Info</a>
           <button id="joinClubBtnMobile" class="w-full bg-white text-orange-600 py-2 rounded hover:bg-orange-50">Join Club</button>
         </div>
       </div>
@@ -100,29 +102,10 @@
       <!-- F1 Results with Reactions -->
       <section class="glass-card">
         <h3 class="text-2xl font-bold text-blue-900 mb-6">Latest Race Results & Fan Reactions</h3>
-        <div class="space-y-4">
-          <div class="glass-card p-4">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="font-bold text-blue-900">Saudi Arabian GP 2025</h4>
-              <span class="text-sm text-blue-600">March 8, 2025</span>
-            </div>
-            <div class="grid grid-cols-3 gap-4 mb-4">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-yellow-600">🥇</div>
-                <div class="text-sm font-semibold text-blue-900">1. Max Verstappen</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-400">🥈</div>
-                <div class="text-sm font-semibold text-blue-900">2. Lando Norris</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-orange-400">🥉</div>
-                <div class="text-sm font-semibold text-blue-900">3. Charles Leclerc</div>
-              </div>
-            </div>
-            <div class="space-y-2" id="raceReactions">
-              <!-- Fan reactions will be populated by JavaScript -->
-            </div>
+        <div class="space-y-4" id="raceResultsSection">
+          <div class="text-center py-8 text-blue-600">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-4"></div>
+            <p>Loading race results...</p>
           </div>
         </div>
       </section>
@@ -393,6 +376,55 @@
             </select>
             <button type="submit" class="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl">Join Community</button>
           </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Race Info Section -->
+    <section id="race-info" class="max-w-6xl mx-auto px-4 py-8 space-y-8 hidden">
+      <div class="glass-card text-center">
+        <div class="text-6xl mb-4">🏎️</div>
+        <h2 class="text-4xl font-bold text-blue-900 mb-4">Race Information</h2>
+        <p class="text-lg text-blue-700 max-w-4xl mx-auto">
+          Detailed race data including timing, telemetry, track status, and more
+        </p>
+      </div>
+
+      <!-- Race Selection -->
+      <div class="glass-card p-6">
+        <div class="grid md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-semibold text-blue-900 mb-2">Year</label>
+            <select id="raceInfoYear" class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-2 text-blue-900">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-blue-900 mb-2">Round</label>
+            <input type="number" id="raceInfoRound" value="1" min="1" max="24" class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-2 text-blue-900">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-blue-900 mb-2">Session</label>
+            <select id="raceInfoSession" class="w-full bg-white/80 border border-blue-200 rounded-lg px-4 py-2 text-blue-900">
+              <option value="R" selected>Race</option>
+              <option value="Q">Qualifying</option>
+              <option value="FP1">Practice 1</option>
+              <option value="FP2">Practice 2</option>
+              <option value="FP3">Practice 3</option>
+            </select>
+          </div>
+        </div>
+        <button id="loadRaceInfoBtn" class="w-full md:w-auto btn-primary bg-orange-500 text-white hover:bg-orange-600">
+          Load Race Info
+        </button>
+      </div>
+
+      <!-- Race Info Content -->
+      <div id="raceInfoContent" class="space-y-6">
+        <div class="text-center py-8 text-blue-600">
+          <p>Select a race and click "Load Race Info" to view detailed information</p>
         </div>
       </div>
     </section>

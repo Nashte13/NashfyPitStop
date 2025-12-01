@@ -524,4 +524,136 @@ class FastF1Service:
         except Exception as e:
             logger.error(f"Error getting next race: {str(e)}")
             raise
+    
+    async def get_race_info(self, year: int, round: int, session: str = 'R') -> Dict:
+        """
+        Get comprehensive race information including timing, track status, session status, etc.
+        """
+        try:
+            loop = asyncio.get_event_loop()
+            race_info = await loop.run_in_executor(
+                None,
+                self._fetch_race_info_sync,
+                year,
+                round,
+                session
+            )
+            return race_info
+        except Exception as e:
+            logger.error(f"Error in get_race_info: {str(e)}")
+            raise
+    
+    def _fetch_race_info_sync(self, year: int, round: int, session: str) -> Dict:
+        """Synchronous race info fetching"""
+        try:
+            sess = fastf1.get_session(year, round, session)
+            sess.load()
+            
+            race_info = {
+                "year": year,
+                "round": round,
+                "session": session,
+                "event_name": sess.event['EventName'] if hasattr(sess, 'event') else None,
+                "country": sess.event['Country'] if hasattr(sess, 'event') else None,
+                "location": sess.event['Location'] if hasattr(sess, 'event') else None,
+                "circuit": sess.event['Location'] if hasattr(sess, 'event') else None,
+                "date": self._format_datetime(self._convert_to_eat(sess.date)) if sess.date else None,
+            }
+            
+            # Session Status
+            if hasattr(sess, 'session_status'):
+                race_info["session_status"] = {
+                    "status": str(sess.session_status) if sess.session_status is not None else None
+                }
+            
+            # Track Status
+            if hasattr(sess, 'track_status'):
+                track_status = sess.track_status
+                if track_status is not None and len(track_status) > 0:
+                    race_info["track_status"] = {
+                        "status": track_status['Status'].tolist() if 'Status' in track_status.columns else [],
+                        "time": track_status['Time'].tolist() if 'Time' in track_status.columns else [],
+                        "message": track_status['Message'].tolist() if 'Message' in track_status.columns else []
+                    }
+            
+            # Race Control Messages
+            if hasattr(sess, 'race_control_messages'):
+                messages = sess.race_control_messages
+                if messages is not None and len(messages) > 0:
+                    race_info["race_control_messages"] = [
+                        {
+                            "time": str(msg.get('Time', '')) if isinstance(msg, dict) else str(msg),
+                            "message": str(msg.get('Message', '')) if isinstance(msg, dict) else str(msg),
+                            "category": str(msg.get('Category', '')) if isinstance(msg, dict) else None
+                        }
+                        for msg in messages.to_dict('records') if hasattr(messages, 'to_dict')
+                    ] or []
+            
+            # Timing Data (Laps)
+            if hasattr(sess, 'laps') and sess.laps is not None:
+                laps = sess.laps
+                if len(laps) > 0:
+                    # Get summary of all drivers' laps
+                    drivers_summary = {}
+                    for driver in sess.results['Abbreviation'] if hasattr(sess, 'results') and sess.results is not None else []:
+                        driver_laps = laps.pick_driver(driver)
+                        if len(driver_laps) > 0:
+                            drivers_summary[driver] = {
+                                "total_laps": len(driver_laps),
+                                "best_lap_time": str(driver_laps.pick_fastest()['LapTime'].iloc[0]) if len(driver_laps.pick_fastest()) > 0 else None,
+                                "average_lap_time": str(driver_laps['LapTime'].mean()) if 'LapTime' in driver_laps.columns else None
+                            }
+                    race_info["timing_data"] = {
+                        "drivers": drivers_summary,
+                        "total_laps": len(laps)
+                    }
+            
+            # Circuit Information
+            try:
+                circuit_info = sess.get_circuit_info()
+                if circuit_info:
+                    race_info["circuit_info"] = {
+                        "corners": len(circuit_info.corners) if hasattr(circuit_info, 'corners') else 0,
+                        "marshal_sectors": len(circuit_info.marshal_sectors) if hasattr(circuit_info, 'marshal_sectors') else 0
+                    }
+            except:
+                pass
+            
+            return race_info
+        except Exception as e:
+            logger.error(f"Error fetching race info: {str(e)}")
+            raise
+    
+    async def get_track_status(self, year: int, round: int, session: str = 'R') -> Dict:
+        """Get track status (flags, safety car, etc.)"""
+        try:
+            loop = asyncio.get_event_loop()
+            status = await loop.run_in_executor(
+                None,
+                self._fetch_track_status_sync,
+                year,
+                round,
+                session
+            )
+            return status
+        except Exception as e:
+            logger.error(f"Error in get_track_status: {str(e)}")
+            raise
+    
+    def _fetch_track_status_sync(self, year: int, round: int, session: str) -> Dict:
+        """Synchronous track status fetching"""
+        try:
+            sess = fastf1.get_session(year, round, session)
+            sess.load()
+            
+            if hasattr(sess, 'track_status') and sess.track_status is not None:
+                track_status = sess.track_status
+                return {
+                    "statuses": track_status.to_dict('records') if hasattr(track_status, 'to_dict') else [],
+                    "current_status": str(track_status['Status'].iloc[-1]) if len(track_status) > 0 and 'Status' in track_status.columns else None
+                }
+            return {"statuses": [], "current_status": None}
+        except Exception as e:
+            logger.error(f"Error fetching track status: {str(e)}")
+            raise
 
